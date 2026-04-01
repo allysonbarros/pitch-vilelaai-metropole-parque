@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VilelaAI — KairOS-AI | Pitch Metrópole Parque 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #06080d;
+  --bg-card: #0c1018;
+  --bg-elevated: #111827;
+  --cyan: #22d3ee;
+  --cyan-dim: #0e7490;
+  --cyan-glow: rgba(34, 211, 238, 0.15);
+  --teal: #2dd4bf;
+  --amber: #fbbf24;
+  --rose: #fb7185;
+  --violet: #a78bfa;
+  --text-primary: #f0f4f8;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border: rgba(148, 163, 184, 0.08);
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Cormorant Garamond', serif;
+}
+
+html, body {
+  font-size: 16px;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-display);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Slide Deck System ─── */
+.deck {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 60px 80px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(60px);
+}
+
+.slide.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+  z-index: 2;
+}
+
+.slide.exit-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  z-index: 1;
+}
+
+.slide.exit-right {
+  opacity: 0;
+  transform: translateX(60px);
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .slide { padding: 40px 24px; }
+}
+
+.slide-inner {
+  max-width: 1200px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+/* ─── Backgrounds & Textures ─── */
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  z-index: 0;
+}
+
+.bg-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* ─── Section Number ─── */
+.section-num {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--cyan);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-num::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 1px;
+  background: var(--cyan);
+}
+
+/* ─── Typography ─── */
+.title-hero {
+  font-size: clamp(3.5rem, 8vw, 7rem);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.title-section {
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 640px;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+/* ─── Slide Enter Animations ─── */
+.slide.active .anim {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.anim {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.d1 { transition-delay: 0.08s; }
+.d2 { transition-delay: 0.16s; }
+.d3 { transition-delay: 0.24s; }
+.d4 { transition-delay: 0.32s; }
+.d5 { transition-delay: 0.40s; }
+.d6 { transition-delay: 0.48s; }
+.d7 { transition-delay: 0.56s; }
+
+/* ─── Cards ─── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.card-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.card-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
+.card-body { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+.card-body li { list-style: none; position: relative; padding-left: 18px; margin-bottom: 6px; }
+.card-body li::before { content: '›'; position: absolute; left: 0; color: var(--cyan); font-weight: 700; }
+.card-body li strong { color: var(--text-primary); font-weight: 600; }
+
+/* ─── Problem Cards ─── */
+.problem-card {
+  background: rgba(251, 113, 133, 0.04);
+  border: 1px solid rgba(251, 113, 133, 0.1);
+  border-radius: 16px;
+  padding: 28px;
+  text-align: center;
+}
+
+.problem-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: rgba(251, 113, 133, 0.1);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-size: 1.3rem;
+}
+
+.problem-card h3 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.problem-card p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* ─── Stat Blocks ─── */
+.stat-block { text-align: center; padding: 32px 20px; }
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 800; color: var(--cyan); line-height: 1; margin-bottom: 8px;
+}
+
+.stat-label { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; max-width: 200px; margin: 0 auto; }
+
+/* ─── Steps ─── */
+.steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+@media (max-width: 768px) { .steps-grid { grid-template-columns: 1fr 1fr; } }
+
+.step {
+  position: relative; padding: 28px 24px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+}
+
+.step::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--teal));
+}
+
+.step-num { font-family: var(--font-mono); font-size: 2rem; font-weight: 800; color: rgba(34, 211, 238, 0.15); line-height: 1; margin-bottom: 12px; }
+.step h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.step p { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* ─── Timeline ─── */
+.timeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; position: relative; }
+@media (max-width: 768px) { .timeline { grid-template-columns: 1fr; } }
+
+.timeline::before {
+  content: ''; position: absolute; top: 6px; left: 5%; right: 5%; height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--teal), var(--violet)); z-index: 0;
+}
+@media (max-width: 768px) { .timeline::before { display: none; } }
+
+.timeline-item { position: relative; z-index: 1; text-align: center; }
+
+.timeline-dot {
+  width: 14px; height: 14px; border-radius: 50%; background: var(--cyan);
+  margin: 0 auto 32px; box-shadow: 0 0 24px rgba(34, 211, 238, 0.4); position: relative;
+}
+.timeline-dot::after {
+  content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid rgba(34, 211, 238, 0.2);
+}
+
+.timeline-year { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; color: var(--cyan); margin-bottom: 16px; }
+.timeline-title { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+.timeline-body { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+
+/* ─── Team ─── */
+.team-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 28px;
+}
+
+.team-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan-dim), var(--cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; font-weight: 800; color: var(--bg-deep);
+}
+
+.team-name { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+.team-role { font-size: 0.78rem; font-weight: 600; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.team-bio { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* ─── Badges ─── */
+.badge-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+
+.badge {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600;
+  padding: 6px 14px; border-radius: 100px;
+  background: rgba(34, 211, 238, 0.08); border: 1px solid rgba(34, 211, 238, 0.15);
+  color: var(--cyan); letter-spacing: 0.04em;
+}
+
+/* ─── Quote ─── */
+.highlight-quote {
+  font-family: var(--font-serif);
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  font-weight: 400; font-style: italic; color: var(--text-primary);
+  line-height: 1.5; max-width: 800px;
+  position: relative; padding-left: 28px;
+  border-left: 3px solid var(--cyan);
+}
+
+.highlight-quote em { color: var(--cyan); font-style: italic; }
+
+/* ─── Grids ─── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+@media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+.gap-40 { gap: 40px; }
+.gap-60 { gap: 60px; }
+.mt-32 { margin-top: 32px; }
+.mt-48 { margin-top: 48px; }
+.mt-64 { margin-top: 64px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.mb-32 { margin-bottom: 32px; }
+.mb-48 { margin-bottom: 48px; }
+
+/* ─── Product Tiles ─── */
+.product-tile {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; display: flex; align-items: center; gap: 16px;
+}
+.product-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; flex-shrink: 0;
+}
+.product-tile h4 { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.product-tile p { font-size: 0.78rem; color: var(--text-muted); }
+
+/* ─── Validation Chips ─── */
+.validation-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; justify-content: center; }
+
+.validation-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px; background: rgba(34, 211, 238, 0.05);
+  border: 1px solid rgba(34, 211, 238, 0.12); border-radius: 100px;
+  font-size: 0.82rem; color: var(--text-secondary);
+}
+.validation-chip .v-icon { color: var(--teal); font-weight: 700; }
+
+/* ─── Ask ─── */
+.ask-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+.ask-card h3 { font-size: 1rem; font-weight: 700; color: var(--cyan); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.ask-card .ask-icon {
+  width: 32px; height: 32px; border-radius: 8px; background: rgba(34, 211, 238, 0.1);
+  display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+}
+.ask-card ul { list-style: none; }
+.ask-card li { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; padding-left: 18px; position: relative; margin-bottom: 5px; }
+.ask-card li::before { content: '→'; position: absolute; left: 0; color: var(--cyan-dim); }
+
+/* ─── Feature Checks ─── */
+.feature-check { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.feature-check .check {
+  width: 22px; height: 22px; border-radius: 6px; background: rgba(45, 212, 191, 0.1);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: var(--teal); font-size: 0.75rem; font-weight: 700; margin-top: 2px;
+}
+.feature-check p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* ─── Divider ─── */
+.section-divider { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 32px 0; }
+
+/* ─── Flow Diagram ─── */
+.flow-container { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 32px 0 16px; }
+.flow-node {
+  padding: 10px 20px; background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.15); border-radius: 8px;
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--cyan); font-weight: 600;
+}
+.flow-arrow { color: var(--text-muted); font-size: 1.2rem; }
+
+/* ─── Floating Orbs ─── */
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -30px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.orb {
+  position: absolute; border-radius: 50%; filter: blur(80px);
+  pointer-events: none; z-index: 0;
+}
+
+/* ─── Navigation Bar ─── */
+.nav-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center; gap: 24px;
+  padding: 16px 32px;
+  background: linear-gradient(0deg, rgba(6,8,13,0.95) 0%, rgba(6,8,13,0.6) 70%, transparent 100%);
+}
+
+.nav-dots {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.nav-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-muted); cursor: pointer;
+  transition: all 0.3s; border: none; padding: 0;
+}
+.nav-dot.active {
+  background: var(--cyan);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
+  width: 28px; border-radius: 4px; height: 6px;
+}
+.nav-dot:hover { background: var(--cyan); }
+
+.nav-counter {
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
+  min-width: 60px; text-align: center;
+}
+
+.nav-arrow {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: rgba(148, 163, 184, 0.08); border: 1px solid var(--border);
+  color: var(--text-secondary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; transition: all 0.2s;
+}
+.nav-arrow:hover { background: rgba(34, 211, 238, 0.1); border-color: rgba(34, 211, 238, 0.2); color: var(--cyan); }
+.nav-arrow:disabled { opacity: 0.25; cursor: default; }
+.nav-arrow:disabled:hover { background: rgba(148, 163, 184, 0.08); border-color: var(--border); color: var(--text-secondary); }
+
+/* ─── Hint (fades out) ─── */
+.key-hint {
+  position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);
+  background: rgba(12, 16, 24, 0.9); border: 1px solid var(--border);
+  padding: 6px 16px; border-radius: 6px; z-index: 100;
+  opacity: 1; transition: opacity 1s;
+  pointer-events: none;
+}
+.key-hint.hidden { opacity: 0; }
+</style>
+</head>
+<body>
+
+<div class="key-hint" id="keyHint">← → navegar · F tela cheia</div>
+
+<!-- ─── Navigation Bar ─── -->
+<nav class="nav-bar">
+  <button class="nav-arrow" id="prevBtn" aria-label="Anterior">←</button>
+  <div class="nav-dots" id="navDots"></div>
+  <button class="nav-arrow" id="nextBtn" aria-label="Próximo">→</button>
+  <div class="nav-counter" id="navCounter">1 / 10</div>
+</nav>
+
+<!-- ─── Slide Deck ─── -->
+<div class="deck" id="deck">
+
+<!-- SLIDE 1 — COVER -->
+<section class="slide active" data-slide="0">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="orb" style="width: 600px; height: 600px; background: radial-gradient(circle, rgba(34,211,238,0.15), transparent 70%); top: -200px; right: -100px; animation: float 12s ease-in-out infinite;"></div>
+  <div class="orb" style="width: 400px; height: 400px; background: radial-gradient(circle, rgba(45,212,191,0.1), transparent 70%); bottom: -100px; left: -50px; animation: float 15s ease-in-out infinite reverse;"></div>
+
+  <div class="slide-inner" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <div class="anim d1">
+      <div class="label mb-24" style="justify-content: center; display: flex; align-items: center; gap: 8px;">
+        <span style="display: inline-block; width: 6px; height: 6px; background: var(--cyan); border-radius: 50%;"></span>
+        Proposta de Incubação — Metrópole Parque / IMD 2026
+      </div>
+    </div>
+    <h1 class="title-hero anim d2" style="margin-bottom: 24px;">VilelaAI</h1>
+    <p class="anim d3" style="font-size: clamp(1.1rem, 2.5vw, 1.5rem); color: var(--text-secondary); font-weight: 300; max-width: 600px; line-height: 1.5; margin-bottom: 40px;">
+      <span style="color: var(--cyan); font-weight: 600;">KairOS-AI</span> — Metodologia de IA para PMEs
+    </p>
+    <div class="flow-container anim d4">
+      <div class="flow-node">Spec</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node">Build</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node">Validate</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node">Evolve</div>
+    </div>
+    <div class="anim d5" style="margin-top: 56px; display: flex; align-items: center; gap: 16px;">
+      <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--cyan-dim), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 800; color: var(--bg-deep);">AV</div>
+      <div style="text-align: left;">
+        <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary);">Allyson Vilela</div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">Co-Fundador — Vilela Technology Ltda</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 2 — O PROBLEMA -->
+<section class="slide" data-slide="1">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="orb" style="width: 500px; height: 500px; background: radial-gradient(circle, rgba(251,113,133,0.08), transparent 70%); top: 10%; left: -150px;"></div>
+
+  <div class="slide-inner">
+    <div class="section-num anim d1">02 — Contexto</div>
+    <h2 class="title-section mb-16 anim d2">O Problema</h2>
+    <p class="subtitle mb-32 anim d3">PMEs precisam de IA para escalar.<br><strong style="color: var(--text-primary);">O que existe não serve.</strong></p>
+
+    <div class="grid-3 mt-48">
+      <div class="problem-card anim d4">
+        <div class="problem-icon">🏢</div>
+        <h3>Grandes Consultorias</h3>
+        <p>Caras demais, sem IA real na entrega</p>
+      </div>
+      <div class="problem-card anim d5">
+        <div class="problem-icon">🤖</div>
+        <h3>Ferramentas Genéricas</h3>
+        <p>ChatGPT não automatiza processos — só responde perguntas</p>
+      </div>
+      <div class="problem-card anim d6">
+        <div class="problem-icon">🐌</div>
+        <h3>Agências Tradicionais</h3>
+        <p>Lentas, caras e sem IA como infraestrutura de entrega</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 — KAIROS-AI -->
+<section class="slide" data-slide="2" style="background: linear-gradient(180deg, var(--bg-deep) 0%, #080e18 100%);">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="orb" style="width: 600px; height: 600px; background: radial-gradient(circle, rgba(34,211,238,0.08), transparent 70%); top: -200px; left: 50%; transform: translateX(-50%);"></div>
+
+  <div class="slide-inner">
+    <div class="section-num anim d1">03 — Solução</div>
+    <h2 class="title-section mb-16 anim d2">KairOS-AI</h2>
+    <p class="subtitle mb-48 anim d3">Metodologia proprietária de desenvolvimento com IA para PMEs</p>
+
+    <div class="grid-2 gap-40">
+      <div class="card anim d4">
+        <div class="label mb-16" style="gap: 8px; display: flex; align-items: center;">
+          <span style="display: inline-block; width: 8px; height: 8px; background: var(--cyan); border-radius: 2px;"></span>
+          Squad Negocial
+        </div>
+        <div class="card-title" style="font-size: 1.25rem;">Agentes especializados no domínio do cliente</div>
+        <div class="card-body mt-32">
+          <ul>
+            <li>Escrevem specs com referência precisa</li>
+            <li>Definem regras e critérios do negócio</li>
+            <li>Validam outputs contra assertions binárias</li>
+            <li><strong>Não codam — garantem que está correto</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card anim d5">
+        <div class="label mb-16" style="gap: 8px; display: flex; align-items: center; color: var(--teal);">
+          <span style="display: inline-block; width: 8px; height: 8px; background: var(--teal); border-radius: 2px;"></span>
+          Fábrica de Software
+        </div>
+        <div class="card-title" style="font-size: 1.25rem;">Agentes técnicos que implementam</div>
+        <div class="card-body mt-32">
+          <ul>
+            <li>22 agentes em 8 times especializados</li>
+            <li>Trabalham em paralelo com as specs</li>
+            <li>Testam automaticamente cada entrega</li>
+            <li><strong>Spec-Driven Development</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 — COMO FUNCIONA -->
+<section class="slide" data-slide="3">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+
+  <div class="slide-inner">
+    <div class="section-num anim d1">04 — Processo</div>
+    <h2 class="title-section mb-48 anim d2">Como Funciona</h2>
+
+    <div class="steps-grid">
+      <div class="step anim d3">
+        <div class="step-num">01</div>
+        <h3>Especifica</h3>
+        <p>Squad negocial documenta o domínio com critérios precisos</p>
+      </div>
+      <div class="step anim d4">
+        <div class="step-num">02</div>
+        <h3>Implementa</h3>
+        <p>Fábrica de software coda baseado nas specs do squad</p>
+      </div>
+      <div class="step anim d5">
+        <div class="step-num">03</div>
+        <h3>Valida</h3>
+        <p>Squad negocial valida com assertions binárias</p>
+      </div>
+      <div class="step anim d6">
+        <div class="step-num">04</div>
+        <h3>Evolui</h3>
+        <p>Prompts evoluem autonomamente: +20-25pts em 30 ciclos</p>
+      </div>
+    </div>
+
+    <div class="validation-row anim d7">
+      <div class="validation-chip"><span class="v-icon">✓</span> 233 assertions</div>
+      <div class="validation-chip"><span class="v-icon">✓</span> 65 agentes</div>
+      <div class="validation-chip"><span class="v-icon">✓</span> 10 domínios</div>
+      <div class="validation-chip"><span class="v-icon">✓</span> Zero hallucination</div>
+      <div class="validation-chip"><span class="v-icon">✓</span> Auto-evolução</div>
+      <div class="validation-chip"><span class="v-icon">✓</span> Rastreabilidade total</div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5 — POR QUE O JURIDICO -->
+<section class="slide" data-slide="4">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="orb" style="width: 500px; height: 500px; background: radial-gradient(circle, rgba(251,191,36,0.07), transparent 70%); bottom: -100px; right: -100px;"></div>
+
+  <div class="slide-inner">
+    <div class="section-num anim d1">05 — Validação</div>
+    <h2 class="title-section mb-32 anim d2">Por que o Jurídico</h2>
+
+    <div class="grid-3 gap-40 anim d3">
+      <div class="stat-block">
+        <div class="stat-value">3,5M</div>
+        <div class="stat-label">novas ações trabalhistas por ano <span style="color: var(--text-muted);">(TST, 2024)</span></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value" style="color: var(--amber);">40-60%</div>
+        <div class="stat-label">do tempo do advogado em tarefas repetitivas</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value" style="color: var(--rose);">Zero</div>
+        <div class="stat-label">tolerância a hallucination no domínio jurídico</div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="anim d5">
+      <blockquote class="highlight-quote" style="margin: 0 auto;">
+        Se o KairOS funciona no domínio mais exigente do Brasil, <em>funciona em qualquer domínio regulado</em> — contabilidade, saúde, educação.
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6 — LABOREAI -->
+<section class="slide" data-slide="5" style="background: linear-gradient(180deg, #080e18 0%, var(--bg-deep) 100%);">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="orb" style="width: 500px; height: 500px; background: radial-gradient(circle, rgba(167,139,250,0.08), transparent 70%); top: 20%; right: -100px;"></div>
+
+  <div class="slide-inner">
+    <div class="section-num anim d1">06 — Produto</div>
+    <h2 class="title-section mb-16 anim d2">LaboreAI</h2>
+    <p class="subtitle mb-48 anim d3">Caso de uso próprio — validando o KairOS-AI em produção</p>
+
+    <div class="grid-2 gap-40">
+      <div class="anim d4">
+        <div class="label mb-16">O que estamos construindo com o KairOS</div>
+        <div style="margin-top: 16px;">
+          <div class="feature-check"><div class="check">✓</div><p>Petições com fundamentação legal verificável <span style="color: var(--text-muted);">(lei + artigo + inciso)</span></p></div>
+          <div class="feature-check"><div class="check">✓</div><p>Calculadora de verbas com memória de cálculo auditável</p></div>
+          <div class="feature-check"><div class="check">✓</div><p>Aviso prévio proporcional — 30 + 3 dias/ano <span style="color: var(--text-muted);">(Lei 12.506/2011)</span></p></div>
+          <div class="feature-check"><div class="check">✓</div><p>INSS calculado com tabela progressiva por faixa</p></div>
+          <div class="feature-check"><div class="check">✓</div><p>Prazos em dias úteis com dobra para Fazenda e Defensoria</p></div>
+          <div class="feature-check"><div class="check">✓</div><p>Verificação de estabilidades <span style="color: var(--text-muted);">(gestante, acidentado, cipeiro)</span></p></div>
+          <div class="feature-check"><div class="check">✓</div><p>Jurisprudência real do TST — <strong style="color: var(--rose);">nunca fabricada</strong></p></div>
+        </div>
+      </div>
+
+      <div class="anim d5">
+        <div class="label mb-16">Verticais do Ecossistema</div>
+        <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+          <div class="product-tile">
+            <div class="product-icon" style="background: rgba(167,139,250,0.12); color: var(--violet);">⚖</div>
+            <div><h4>JurixIA</h4><p>Plataforma completa · jurix.vilela.tech</p></div>
+          </div>
+          <div class="product-tile">
+            <div class="product-icon" style="background: rgba(251,191,36,0.12); color: var(--amber);">📊</div>
+            <div><h4>NumerIA</h4><p>Contabilidade · Roadmap 2026</p></div>
+          </div>
+          <div class="product-tile">
+            <div class="product-icon" style="background: rgba(45,212,191,0.12); color: var(--teal);">🏥</div>
+            <div><h4>MedixIA</h4><p>Saúde · Roadmap 2027</p></div>
+          </div>
+          <div class="product-tile">
+            <div class="product-icon" style="background: rgba(34,211,238,0.12); color: var(--cyan);">🎓</div>
+            <div><h4>Inclua</h4><p>Educação Inclusiva · Em desenvolvimento</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7 — O QUE JA CONSTRUIMOS -->
+<section class="slide" data-slide="6">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="orb" style="width: 700px; height: 700px; background: radial-gradient(circle, rgba(34,211,238,0.06), transparent 70%); bottom: -200px; left: 50%; transform: translateX(-50%);"></div>
+
+  <div class="slide-inner">
+    <div class="section-num anim d1">07 — Tração</div>
+    <h2 class="title-section mb-48 anim d2">O que já construímos</h2>
+
+    <div class="grid-3 gap-40">
+      <div class="card anim d3" style="text-align: center; padding: 40px 28px;">
+        <div class="stat-value" style="font-size: 3.5rem;">65</div>
+        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 8px;">agentes negociais<br>em 10 domínios</div>
+      </div>
+      <div class="card anim d4" style="text-align: center; padding: 40px 28px;">
+        <div class="stat-value" style="font-size: 3.5rem; color: var(--teal);">233</div>
+        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 8px;">assertions binárias<br>automatizadas</div>
+      </div>
+      <div class="card anim d5" style="text-align: center; padding: 40px 28px;">
+        <div class="stat-value" style="font-size: 3rem; color: var(--amber);">R$ 110K</div>
+        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 8px;">receita<br>em 14 meses</div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="anim d6" style="text-align: center;">
+      <div class="label mb-24">Validação Externa Independente</div>
+      <div class="badge-row" style="justify-content: center;">
+        <div class="badge" style="background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.2); color: var(--amber);">AWS Activate — US$ 5.100 em créditos</div>
+        <div class="badge" style="background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.2); color: var(--cyan);">Microsoft for Startups — US$ 5.000 Azure</div>
+        <div class="badge" style="background: rgba(45,212,191,0.08); border-color: rgba(45,212,191,0.2); color: var(--teal);">NVIDIA Connect — suporte técnico e rede global</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 8 — MODELO E VISAO -->
+<section class="slide" data-slide="7" style="background: linear-gradient(180deg, var(--bg-deep) 0%, #080e18 100%);">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+
+  <div class="slide-inner">
+    <div class="section-num anim d1">08 — Roadmap</div>
+    <h2 class="title-section mb-16 anim d2">Modelo e Visão</h2>
+    <p class="subtitle mb-48 anim d3">Consultoria de IA agora → SaaS verticais → Plataforma enterprise</p>
+
+    <div class="timeline anim d4">
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-year">2026</div>
+        <div class="timeline-title">Consultoria + KairOS</div>
+        <div class="timeline-body">R$ 110K receita atual<br>LaboreAI em beta aberto<br><strong style="color: var(--cyan);">MRR meta: R$ 40K</strong></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background: var(--teal); box-shadow: 0 0 24px rgba(45,212,191,0.4);"></div>
+        <div class="timeline-year" style="color: var(--teal);">2027–28</div>
+        <div class="timeline-title">SaaS Verticais</div>
+        <div class="timeline-body">JurixIA + NumerIA + MedixIA<br>5+ domínios cobertos<br><strong style="color: var(--teal);">ARR meta: R$ 1,4M</strong></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background: var(--violet); box-shadow: 0 0 24px rgba(167,139,250,0.4);"></div>
+        <div class="timeline-year" style="color: var(--violet);">2029+</div>
+        <div class="timeline-title">Plataforma Enterprise</div>
+        <div class="timeline-body">IA regulatória para<br>qualquer domínio BR<br><strong style="color: var(--violet);">Expansão LATAM</strong></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 9 — EQUIPE E ASK -->
+<section class="slide" data-slide="8">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="orb" style="width: 600px; height: 600px; background: radial-gradient(circle, rgba(34,211,238,0.06), transparent 70%); top: -200px; right: -200px;"></div>
+
+  <div class="slide-inner">
+    <div class="section-num anim d1">09 — Equipe & Ask</div>
+    <h2 class="title-section mb-48 anim d2">Equipe e o que Buscamos</h2>
+
+    <div class="grid-2 gap-60">
+      <div>
+        <div class="label mb-24 anim d3">A Equipe</div>
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="team-card anim d3" style="display: flex; align-items: center; gap: 20px;">
+            <div class="team-avatar" style="flex-shrink: 0;">AV</div>
+            <div>
+              <div class="team-name">Allyson Vilela</div>
+              <div class="team-role">Co-Fundador</div>
+              <div class="team-bio">15+ anos eng. software e IA · Mestrado UFRN<br>12 patentes INPI · ex-Embratur · ex-MCom</div>
+            </div>
+          </div>
+          <div class="team-card anim d4" style="display: flex; align-items: center; gap: 20px;">
+            <div class="team-avatar" style="flex-shrink: 0; background: linear-gradient(135deg, #0e7490, #2dd4bf);">AF</div>
+            <div>
+              <div class="team-name">Anderson Felipe</div>
+              <div class="team-role">CEO · Co-Fundador</div>
+              <div class="team-bio">Full-Stack Next.js/NestJS · MBA Eng. Software com IA<br>4+ produtos full-stack em produção</div>
+            </div>
+          </div>
+          <div class="team-card anim d5" style="display: flex; align-items: center; gap: 20px;">
+            <div class="team-avatar" style="flex-shrink: 0; background: linear-gradient(135deg, #6d28d9, #a78bfa);">FV</div>
+            <div>
+              <div class="team-name">Filipe Barros Vilela</div>
+              <div class="team-role">Legal Product Manager</div>
+              <div class="team-bio">Bacharelado Direito UFRN · Univ. de Coimbra<br>Estágios MPT · AGU · define assertions jurídicas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="label mb-24 anim d3">O que Buscamos</div>
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="ask-card anim d4">
+            <h3><span class="ask-icon">🧭</span> Mentoria</h3>
+            <ul>
+              <li>Estruturar modelo de consultoria para PMEs</li>
+              <li>Preparação para rodada seed</li>
+            </ul>
+          </div>
+          <div class="ask-card anim d5">
+            <h3><span class="ask-icon">🤝</span> Rede</h3>
+            <ul>
+              <li>OAB/RN · escritórios trabalhistas de Natal/RN</li>
+              <li>PMEs e órgãos públicos do Nordeste via IMD/UFRN</li>
+            </ul>
+          </div>
+          <div class="ask-card anim d6">
+            <h3><span class="ask-icon">🏗</span> Infraestrutura</h3>
+            <ul>
+              <li>Data Center + credencial IMD/UFRN</li>
+              <li>Mentores com experiência em SaaS e consultoria B2B</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 10 — CLOSING -->
+<section class="slide" data-slide="9">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="orb" style="width: 800px; height: 800px; background: radial-gradient(circle, rgba(34,211,238,0.1), transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); animation: pulse-glow 6s ease-in-out infinite;"></div>
+
+  <div class="slide-inner" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+    <h2 class="title-hero anim d1" style="font-size: clamp(2.5rem, 6vw, 5rem); margin-bottom: 20px;">VilelaAI</h2>
+    <p class="anim d2" style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 32px;">
+      IA que funciona onde <span style="color: var(--cyan); font-weight: 600;">errar não é opção</span>.
+    </p>
+    <div class="flow-container anim d3" style="margin-bottom: 40px;">
+      <div class="flow-node">KairOS-AI</div>
+      <span class="flow-arrow">·</span>
+      <div class="flow-node">LaboreAI</div>
+      <span class="flow-arrow">·</span>
+      <div class="flow-node">JurixIA</div>
+    </div>
+    <div class="anim d4" style="font-size: 0.85rem; color: var(--text-muted);">
+      Metrópole Parque / IMD 2026
+    </div>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<script>
+(() => {
+  const slides = document.querySelectorAll('.slide');
+  const navDots = document.getElementById('navDots');
+  const counter = document.getElementById('navCounter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const hint = document.getElementById('keyHint');
+  const total = slides.length;
+  let current = 0;
+  let transitioning = false;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', `Slide ${i + 1}`);
+    dot.addEventListener('click', () => goTo(i));
+    navDots.appendChild(dot);
+  });
+
+  const dots = navDots.querySelectorAll('.nav-dot');
+
+  function updateUI() {
+    counter.textContent = `${current + 1} / ${total}`;
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === total - 1;
+  }
+
+  function goTo(index) {
+    if (index === current || index < 0 || index >= total || transitioning) return;
+    transitioning = true;
+
+    const dir = index > current ? 1 : -1;
+    const prevSlide = slides[current];
+    const nextSlide = slides[index];
+
+    // 1. Reset .anim children to hidden (no transition so it's instant)
+    nextSlide.querySelectorAll('.anim').forEach(el => {
+      el.style.transition = 'none';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(24px)';
+    });
+
+    // 2. Position incoming slide off-screen (instant, no transition)
+    nextSlide.style.transition = 'none';
+    nextSlide.style.opacity = '0';
+    nextSlide.style.transform = `translateX(${dir * 60}px)`;
+    nextSlide.classList.remove('exit-left', 'exit-right', 'active');
+
+    // 3. Force reflow so the browser registers the starting position
+    void nextSlide.offsetWidth;
+
+    // 4. Re-enable transitions, then animate in
+    nextSlide.style.transition = '';
+    nextSlide.style.opacity = '1';
+    nextSlide.style.transform = 'translateX(0)';
+    nextSlide.classList.add('active');
+
+    // 5. Animate out the current slide
+    prevSlide.classList.remove('active');
+    prevSlide.style.transition = '';
+    prevSlide.style.opacity = '0';
+    prevSlide.style.transform = `translateX(${dir * -60}px)`;
+
+    // 6. Trigger .anim children stagger (next frame so transition kicks in)
+    requestAnimationFrame(() => {
+      nextSlide.querySelectorAll('.anim').forEach(el => {
+        el.style.transition = '';
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      });
+    });
+
+    current = index;
+    updateUI();
+
+    setTimeout(() => {
+      // Clean up animation inline styles (preserve any original inline like background)
+      const cleanSlide = (s) => {
+        s.style.opacity = '';
+        s.style.transform = '';
+        s.style.transition = '';
+        s.classList.remove('exit-left', 'exit-right');
+      };
+      const cleanAnims = (s) => {
+        s.querySelectorAll('.anim').forEach(el => {
+          el.style.opacity = '';
+          el.style.transform = '';
+          el.style.transition = '';
+        });
+      };
+
+      cleanSlide(prevSlide);
+      cleanAnims(prevSlide);
+      cleanSlide(nextSlide);
+      cleanAnims(nextSlide);
+
+      transitioning = false;
+    }, 600);
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prev(); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+    if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  });
+
+  // Buttons
+  prevBtn.addEventListener('click', prev);
+  nextBtn.addEventListener('click', next);
+
+  // Touch swipe
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].screenX;
+    if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+  }, { passive: true });
+
+  // Hide hint
+  setTimeout(() => hint.classList.add('hidden'), 3000);
+  setTimeout(() => hint.remove(), 4500);
+
+  updateUI();
+})();
+</script>
+</body>
+</html>
