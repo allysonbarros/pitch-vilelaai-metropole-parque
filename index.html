@@ -2021,6 +2021,28 @@ body.app-mode .slide-mockup { display: none !important; }
 }
 
 /* ════════════════════════════════════════════════════════════════
+   AGENTS / ASSERTIONS v2 — listas dinâmicas
+   ════════════════════════════════════════════════════════════════ */
+.ag-list, .as-list { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
+.ag-row, .as-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  background: #0B0C12;
+  border: 1px solid #1F2230;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ag-row:hover, .as-row:hover { border-color: hsl(var(--primary) / 0.4); background: rgba(36, 113, 245, 0.04); }
+.ag-row-main, .as-row-main { flex: 1; min-width: 0; }
+.ag-row-title { font-weight: 600; color: #fff; margin-bottom: 3px; font-size: 14px; }
+.ag-row-sub { font-size: 12px; color: #9CA3AF; line-height: 1.5; }
+.as-row-name { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: hsl(var(--primary)); font-weight: 500; margin-bottom: 4px; display: block; }
+.as-row-sub { font-size: 13px; color: #E5E7EB; line-height: 1.5; }
+.ag-row-meta, .as-row-meta { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.ag-empty { padding: 32px; color: #6B7280; text-align: center; font-size: 13px; }
+
+/* ════════════════════════════════════════════════════════════════
    DRILL PANEL — slide-in da direita
    ════════════════════════════════════════════════════════════════ */
 #drillBackdrop {
@@ -3783,18 +3805,20 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
           </div>
         </div>
 
-        <div class="ag-filters">
-          <div class="ag-chip active">Todos <span class="ag-chip-count">214</span></div>
-          <div class="ag-chip">Trabalhista <span class="ag-chip-count">12</span></div>
-          <div class="ag-chip">Educação Inclusiva <span class="ag-chip-count">5</span></div>
-          <div class="ag-chip">Jurídico <span class="ag-chip-count">18</span></div>
-          <div class="ag-chip">LGPD <span class="ag-chip-count">8</span></div>
-          <div class="ag-chip">Tributário <span class="ag-chip-count">9</span></div>
-          <div class="ag-chip">Saúde <span class="ag-chip-count">7</span></div>
-          <div class="ag-chip">SST · NR-01 <span class="ag-chip-count">5</span></div>
-          <div class="ag-chip">+ 8 outros</div>
+        <div class="ag-filters" id="agentsFilters">
+          <button class="ag-chip active" data-role="all">Todos</button>
+          <button class="ag-chip" data-role="contratos">Contratos</button>
+          <button class="ag-chip" data-role="licit">Licitações</button>
+          <button class="ag-chip" data-role="dpo">LGPD/DPO</button>
+          <button class="ag-chip" data-role="fiscal">Fiscalização</button>
+          <button class="ag-chip" data-role="modalidade">Modalidades</button>
         </div>
 
+        <div class="ag-list" id="agentsList">
+          <!-- renderAgents popula -->
+        </div>
+
+        <template id="agentsLegacy" hidden>
         <div class="ag-grid">
           <div class="ag-card">
             <div class="ag-card-head">
@@ -3922,6 +3946,7 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
             </div>
           </div>
         </div>
+        </template>
       </div>
     </div>
 
@@ -3940,15 +3965,18 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
           </div>
         </div>
 
-        <div class="as-search-bar">
-          <input type="text" class="as-search-input" placeholder="Buscar por ID, descrição ou referência regulatória... (ex: LBI Art. 28)">
-          <div class="ag-chip active">Todas <span class="ag-chip-count">478</span></div>
-          <div class="ag-chip">Regulatórias <span class="ag-chip-count">214</span></div>
-          <div class="ag-chip">Factuais <span class="ag-chip-count">142</span></div>
-          <div class="ag-chip">Estruturais <span class="ag-chip-count">87</span></div>
-          <div class="ag-chip">Pragmáticas <span class="ag-chip-count">35</span></div>
+        <div class="as-search-bar" id="assertionsFilters">
+          <button class="ag-chip active" data-status="all">Todas</button>
+          <button class="ag-chip" data-status="pass">Passing</button>
+          <button class="ag-chip" data-status="warning">Warning</button>
+          <button class="ag-chip" data-status="fail">Failing</button>
         </div>
 
+        <div class="as-list" id="assertionsList">
+          <!-- renderAssertions popula -->
+        </div>
+
+        <template id="assertionsLegacy" hidden>
         <div class="as-list">
           <div class="as-row">
             <div class="as-row-mark regulatory"></div>
@@ -4031,6 +4059,7 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
             <div class="as-row-severity pragmatic">Pragmática</div>
           </div>
         </div>
+        </template>
       </div>
     </div>
 
@@ -5618,6 +5647,168 @@ renderComplianceItemDrill = function (c, eyebrow, title, body, foot) {
 
 // Renderiza Compliance inicialmente
 renderCompliance(state);
+
+// ════════════════════════════════════════════════════════════════
+// AGENTS v2
+// ════════════════════════════════════════════════════════════════
+function renderAgents(s) {
+  const list = document.getElementById('agentsList');
+  if (!list) return;
+  const d = activeDomainData();
+  const all = d
+    ? d.agents.map(a => Object.assign({}, a, { _domain: d }))
+    : Object.values(KAIROS_DATA.featured).flatMap(dd => dd.agents.map(a => Object.assign({}, a, { _domain: dd })));
+
+  const roleFilter = s.filters.agents.role;
+  const filtered = roleFilter === 'all'
+    ? all
+    : all.filter(a => (a.role + ' ' + (a.specialty || '') + ' ' + (a.id || '')).toLowerCase().includes(roleFilter.toLowerCase()));
+
+  if (filtered.length === 0) {
+    setHTML(list, '<div class="ag-empty">Nenhum agente bate com o filtro.</div>');
+    return;
+  }
+  setHTML(list, filtered.map((a, i) =>
+    '<article class="ag-row" data-i="' + i + '">'
+    + '<div class="ag-row-main">'
+    + '<div class="ag-row-title">' + a.role + '</div>'
+    + '<div class="ag-row-sub">' + (a.specialty || a.description || '') + '</div>'
+    + '</div>'
+    + '<div class="ag-row-meta"><span class="drill-tag">' + a._domain.name + '</span></div>'
+    + '</article>'
+  ).join(''));
+
+  list.querySelectorAll('.ag-row').forEach(el => {
+    el.addEventListener('click', () => openDrill('agent', filtered[parseInt(el.dataset.i, 10)]));
+  });
+}
+subscribe(renderAgents);
+
+document.querySelectorAll('#agentsFilters .ag-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#agentsFilters .ag-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    setState({ filters: Object.assign({}, state.filters, { agents: { role: chip.dataset.role || 'all' } }) });
+  });
+});
+
+renderAgentDrill = function (a, eyebrow, title, body, foot) {
+  eyebrow.textContent = 'Agente · ' + a._domain.name;
+  title.textContent = a.role;
+  const asHtml = a._domain.assertions.slice(0, 5).map(as =>
+    '<div class="drill-list-item">'
+    + '<div class="di-title"><code>' + as.name + '</code></div>'
+    + '<div class="di-meta">' + as.description + '</div>'
+    + '</div>'
+  ).join('');
+  setHTML(body,
+    '<div class="drill-section">'
+    + '<dl class="drill-kv">'
+    + '<dt>ID</dt><dd><code>' + (a.id || a.role.toLowerCase().replace(/\s+/g, '-')) + '</code></dd>'
+    + '<dt>Domínio</dt><dd>' + a._domain.fullName + '</dd>'
+    + '<dt>Especialidade</dt><dd>' + (a.specialty || '—') + '</dd>'
+    + '</dl></div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Descrição</div>'
+    + '<p>' + (a.description || '—') + '</p>'
+    + '</div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Assertions vinculadas (top 5)</div>'
+    + '<div class="drill-list">' + asHtml + '</div>'
+    + '</div>'
+  );
+  setHTML(foot, '<button class="app-btn secondary" onclick="closeDrill()">Fechar</button>');
+};
+
+renderAgents(state);
+
+// ════════════════════════════════════════════════════════════════
+// ASSERTIONS v2
+// ════════════════════════════════════════════════════════════════
+function renderAssertions(s) {
+  const list = document.getElementById('assertionsList');
+  if (!list) return;
+  const d = activeDomainData();
+  const all = d
+    ? d.assertions.map(a => Object.assign({}, a, { _domain: d }))
+    : Object.values(KAIROS_DATA.featured).flatMap(dd => dd.assertions.map(a => Object.assign({}, a, { _domain: dd })));
+
+  function statusFor(a) {
+    const h = a.name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    if (h % 13 === 0) return 'fail';
+    if (h % 7 === 0) return 'warning';
+    return 'pass';
+  }
+  const enriched = all.map(a => Object.assign({}, a, { status: statusFor(a) }));
+
+  const sf = s.filters.assertions.status;
+  const filtered = sf === 'all' ? enriched : enriched.filter(a => a.status === sf);
+
+  if (filtered.length === 0) {
+    setHTML(list, '<div class="ag-empty">Nenhuma assertion bate com o filtro.</div>');
+    return;
+  }
+  setHTML(list, filtered.map((a, i) => {
+    const tagCls = a.status === 'pass' ? 'success' : a.status === 'warning' ? 'warn' : 'fail';
+    return '<article class="as-row" data-i="' + i + '">'
+      + '<div class="as-row-main">'
+      + '<code class="as-row-name">' + a.name + '</code>'
+      + '<div class="as-row-sub">' + a.description + '</div>'
+      + '</div>'
+      + '<div class="as-row-meta">'
+      + '<span class="drill-tag ' + tagCls + '">' + a.status + '</span>'
+      + '<span class="drill-tag">' + a._domain.name + '</span>'
+      + '</div>'
+      + '</article>';
+  }).join(''));
+
+  list.querySelectorAll('.as-row').forEach(el => {
+    el.addEventListener('click', () => openDrill('assertion', filtered[parseInt(el.dataset.i, 10)]));
+  });
+}
+subscribe(renderAssertions);
+
+document.querySelectorAll('#assertionsFilters .ag-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#assertionsFilters .ag-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    setState({ filters: Object.assign({}, state.filters, { assertions: { status: chip.dataset.status || 'all' } }) });
+  });
+});
+
+renderAssertionDrill = function (a, eyebrow, title, body, foot) {
+  const tagCls = a.status === 'pass' ? 'success' : a.status === 'warning' ? 'warn' : 'fail';
+  eyebrow.textContent = 'Assertion · ' + a._domain.name;
+  setHTML(title, '<code style="font-size:18px">' + a.name + '</code>');
+  const passRate7d = a.status === 'pass' ? (0.95 + Math.random() * 0.05) : a.status === 'warning' ? (0.80 + Math.random() * 0.10) : (0.60 + Math.random() * 0.15);
+  const scenariosHtml = a._domain.scenarios.filter(sc => (sc.expected_keys || []).includes(a.name)).map(sc =>
+    '<div class="drill-list-item">'
+    + '<div class="di-title">' + sc.name + '</div>'
+    + '<div class="di-meta">' + sc.input.slice(0, 120) + (sc.input.length > 120 ? '…' : '') + '</div>'
+    + '</div>'
+  ).join('') || '<p style="color:#6B7280">Esta assertion não é exercitada diretamente pelos cenários curados; é validada inline em todas as execuções.</p>';
+  setHTML(body,
+    '<div class="drill-section">'
+    + '<dl class="drill-kv">'
+    + '<dt>Domínio</dt><dd>' + a._domain.fullName + '</dd>'
+    + '<dt>Categoria</dt><dd>' + (a.category || '—') + '</dd>'
+    + '<dt>Pipeline</dt><dd>' + (a.pipeline ? '<span class="drill-tag success">Sim · ordem ' + a.pipelineOrder + '</span>' : '<span class="drill-tag">Não</span>') + '</dd>'
+    + '<dt>Status atual</dt><dd><span class="drill-tag ' + tagCls + '">' + a.status + '</span></dd>'
+    + '<dt>Taxa 7d</dt><dd>' + (passRate7d * 100).toFixed(1) + '%</dd>'
+    + '</dl></div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Descrição</div>'
+    + '<p>' + a.description + '</p>'
+    + '</div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Cenários que exercitam</div>'
+    + '<div class="drill-list">' + scenariosHtml + '</div>'
+    + '</div>'
+  );
+  setHTML(foot, '<button class="app-btn secondary" onclick="closeDrill()">Fechar</button>');
+};
+
+renderAssertions(state);
 
 // Auto-scale para caber em qualquer viewport mantendo proporção 1920x1080
 function fitScale() {
