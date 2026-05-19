@@ -1,0 +1,6 @@
+# Diretório temporário de extração (Modo Aplicação)
+tmp/
+
+# OS / editor
+.DS_Store
+*.swp
