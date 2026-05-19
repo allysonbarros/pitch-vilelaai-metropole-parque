@@ -5981,6 +5981,10 @@ function tick() {
 
 setInterval(tick, TICK_INTERVAL_MS);
 
+// Render inicial das telas que dependem de KAIROS_DATA/ticker
+renderObservability(state);
+renderFinOps(state);
+
 // Auto-scale para caber em qualquer viewport mantendo proporção 1920x1080
 function fitScale() {
   const sx = window.innerWidth / 1920;
