@@ -1979,6 +1979,48 @@ body.app-mode .slide-mockup { display: none !important; }
 .fo-budget-meta { font-size: 13px; color: #9CA3AF; }
 
 /* ════════════════════════════════════════════════════════════════
+   COMPLIANCE v2 — items por categoria
+   ════════════════════════════════════════════════════════════════ */
+.co-cat[data-cat] { cursor: pointer; }
+.co-cat.domain-applicable { position: relative; }
+.co-cat.domain-applicable::after {
+  content: 'aplicável';
+  position: absolute;
+  top: 4px; right: 4px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: hsl(var(--primary) / 0.15);
+  color: hsl(var(--primary));
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.co-items { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
+.co-item {
+  background: #0B0C12;
+  border: 1px solid #1F2230;
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: border-color 0.18s, transform 0.18s;
+}
+.co-item:hover { border-color: hsl(var(--primary) / 0.4); transform: translateX(2px); }
+.co-item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 12px; }
+.co-item-label { font-weight: 600; color: #fff; font-size: 14px; }
+.co-item-meta { font-size: 12px; color: #9CA3AF; }
+.co-empty {
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed #1F2230;
+  border-radius: 12px;
+  display: flex; flex-direction: column; gap: 14px;
+  align-items: center;
+  color: #9CA3AF; font-size: 14px;
+  text-align: center;
+}
+
+/* ════════════════════════════════════════════════════════════════
    DRILL PANEL — slide-in da direita
    ════════════════════════════════════════════════════════════════ */
 #drillBackdrop {
@@ -4151,28 +4193,33 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
         </div>
 
         <div class="co-categories">
-          <div class="co-cat active">
-            <div class="co-cat-name">ANPD · LGPD</div>
+          <div class="co-cat active" data-cat="lei14133">
+            <div class="co-cat-name">Lei 14.133/21</div>
             <div class="co-cat-count">14</div>
-            <div class="co-cat-meta">relatórios este mês</div>
+            <div class="co-cat-meta">assertions de procurement</div>
           </div>
-          <div class="co-cat">
-            <div class="co-cat-name">MPT · eSocial</div>
-            <div class="co-cat-count">9</div>
-            <div class="co-cat-meta">eventos validados</div>
+          <div class="co-cat" data-cat="lgpd">
+            <div class="co-cat-name">LGPD · ANPD</div>
+            <div class="co-cat-count">12</div>
+            <div class="co-cat-meta">assertions de proteção de dados</div>
           </div>
-          <div class="co-cat">
-            <div class="co-cat-name">CFM · CFC</div>
+          <div class="co-cat" data-cat="lai">
+            <div class="co-cat-name">LAI · Transparência</div>
+            <div class="co-cat-count">7</div>
+            <div class="co-cat-meta">prazos e publicações</div>
+          </div>
+          <div class="co-cat" data-cat="acessibilidade">
+            <div class="co-cat-name">Acessibilidade · LBI</div>
             <div class="co-cat-count">5</div>
-            <div class="co-cat-meta">documentos</div>
-          </div>
-          <div class="co-cat">
-            <div class="co-cat-name">Auditoria geral</div>
-            <div class="co-cat-count">128</div>
-            <div class="co-cat-meta">eventos auditados</div>
+            <div class="co-cat-meta">documentos e portais</div>
           </div>
         </div>
 
+        <div class="co-items" id="coItemsList">
+          <!-- renderCompliance popula -->
+        </div>
+
+        <template id="coLegacyTable" hidden>
         <div class="co-table">
           <div class="chart-head"><span class="chart-title">Relatórios gerados · últimos 30 dias</span><span class="chart-period">ordenado por data</span></div>
           <div class="co-doc-row header">
@@ -4255,6 +4302,7 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
             <div><button class="co-doc-action">Baixar JSON</button></div>
           </div>
         </div>
+        </template>
       </div>
     </div>
   </div>
@@ -5469,6 +5517,107 @@ renderBudgetDrill = function (b, eyebrow, title, body, foot) {
   );
   setHTML(foot, '<button class="app-btn secondary" onclick="closeDrill()">Fechar</button>');
 };
+
+// ════════════════════════════════════════════════════════════════
+// COMPLIANCE v2
+// ════════════════════════════════════════════════════════════════
+function prettyCategoryName(cat) {
+  return ({ lei14133: 'Lei 14.133/21', lgpd: 'LGPD', lai: 'LAI', acessibilidade: 'Acessibilidade' })[cat] || cat;
+}
+
+function renderCompliance(s) {
+  const list = document.getElementById('coItemsList');
+  if (!list) return;
+
+  const cat = s.filters.compliance.category;
+  const d = activeDomainData();
+
+  document.querySelectorAll('#kairosApp .co-cat[data-cat]').forEach(c => {
+    c.classList.toggle('active', c.dataset.cat === cat);
+    c.classList.toggle('domain-applicable', !!(d && d.compliance.categories.includes(c.dataset.cat)));
+  });
+
+  let items;
+  if (d && d.compliance.categories.includes(cat)) {
+    items = d.compliance.items;
+  } else if (!d && cat === 'lei14133') {
+    items = KAIROS_DATA.featured.contria.compliance.items.concat(KAIROS_DATA.featured.licitia.compliance.items);
+  } else if (!d && cat === 'lgpd') {
+    items = KAIROS_DATA.featured.privacia.compliance.items;
+  } else if (!d && cat === 'lai') {
+    items = [
+      { label: 'Resposta a pedido LAI em até 20 dias úteis', regulator: 'Lei 12.527/11', lastCheck: 'pass', passRate7d: 0.97 },
+      { label: 'Transparência ativa atualizada no portal', regulator: 'Decreto 7.724/12', lastCheck: 'pass', passRate7d: 0.99 },
+      { label: 'Carta de Serviços publicada e revisada anualmente', regulator: 'Lei 13.460/17', lastCheck: 'warning', passRate7d: 0.88 },
+    ];
+  } else if (!d && cat === 'acessibilidade') {
+    items = [
+      { label: 'Documentos PDF com OCR e texto selecionável', regulator: 'LBI · Decreto 9.508/18', lastCheck: 'warning', passRate7d: 0.82 },
+      { label: 'Contraste AA conforme WCAG 2.1', regulator: 'eMAG', lastCheck: 'pass', passRate7d: 0.95 },
+      { label: 'Conteúdo em Libras para informações essenciais', regulator: 'LBI art. 73', lastCheck: 'fail', passRate7d: 0.61 },
+    ];
+  } else {
+    items = [];
+  }
+
+  if (items.length === 0) {
+    setHTML(list,
+      '<div class="co-empty">'
+      + '<div>Categoria <strong>' + prettyCategoryName(cat) + '</strong> não é aplicável a <strong>' + (d ? d.fullName : 'sistema') + '</strong>.</div>'
+      + '<button class="app-btn secondary" id="coClearDomain">Ver agregado do sistema</button>'
+      + '</div>'
+    );
+    const btn = document.getElementById('coClearDomain');
+    if (btn) btn.addEventListener('click', () => setState({ currentDomain: null }));
+    return;
+  }
+
+  setHTML(list, items.map((it, i) => {
+    const tagCls = it.lastCheck === 'pass' ? 'success' : it.lastCheck === 'warning' ? 'warn' : 'fail';
+    return '<article class="co-item" data-item-i="' + i + '">'
+      + '<div class="co-item-head">'
+      + '<div class="co-item-label">' + it.label + '</div>'
+      + '<span class="drill-tag ' + tagCls + '">' + it.lastCheck + '</span>'
+      + '</div>'
+      + '<div class="co-item-meta">' + it.regulator + ' · taxa de aprovação 7d: <strong>' + (it.passRate7d * 100).toFixed(1) + '%</strong></div>'
+      + '</article>';
+  }).join(''));
+
+  list.querySelectorAll('.co-item').forEach(el => {
+    el.addEventListener('click', () => openDrill('compliance-item', items[parseInt(el.dataset.itemI, 10)]));
+  });
+}
+subscribe(renderCompliance);
+
+// Listener categorias (substitui o legado que só togglava visual)
+document.querySelectorAll('#kairosApp .co-cat[data-cat]').forEach(catEl => {
+  catEl.addEventListener('click', () => {
+    setState({ filters: Object.assign({}, state.filters, { compliance: { category: catEl.dataset.cat } }) });
+  });
+});
+
+// Override stub do compliance drill
+renderComplianceItemDrill = function (c, eyebrow, title, body, foot) {
+  const tagCls = c.lastCheck === 'pass' ? 'success' : c.lastCheck === 'warning' ? 'warn' : 'fail';
+  eyebrow.textContent = 'Item de compliance';
+  title.textContent = c.label;
+  setHTML(body,
+    '<div class="drill-section">'
+    + '<dl class="drill-kv">'
+    + '<dt>Regulação</dt><dd>' + c.regulator + '</dd>'
+    + '<dt>Última checagem</dt><dd><span class="drill-tag ' + tagCls + '">' + c.lastCheck + '</span></dd>'
+    + '<dt>Taxa 7d</dt><dd>' + (c.passRate7d * 100).toFixed(1) + '%</dd>'
+    + '</dl></div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Como é verificado</div>'
+    + '<p>Esta assertion roda em todas as execuções dos agentes cobertos pelo domínio. Falhas geram alerta ao responsável e bloqueio de saída em campos sensíveis (fundamentação, citação legal).</p>'
+    + '</div>'
+  );
+  setHTML(foot, '<button class="app-btn secondary" onclick="closeDrill()">Fechar</button>');
+};
+
+// Renderiza Compliance inicialmente
+renderCompliance(state);
 
 // Auto-scale para caber em qualquer viewport mantendo proporção 1920x1080
 function fitScale() {
