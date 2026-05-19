@@ -2043,6 +2043,34 @@ body.app-mode .slide-mockup { display: none !important; }
 .ag-empty { padding: 32px; color: #6B7280; text-align: center; font-size: 13px; }
 
 /* ════════════════════════════════════════════════════════════════
+   OVERVIEW v2 — quick cards + banner + reactive feed
+   ════════════════════════════════════════════════════════════════ */
+.ov-quick-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; margin-bottom: 24px; }
+.ov-quick-card {
+  background: linear-gradient(135deg, rgba(36, 113, 245, 0.08), rgba(107, 38, 214, 0.08));
+  border: 1px solid hsl(var(--primary) / 0.3);
+  border-radius: 14px;
+  padding: 20px 22px;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+.ov-quick-card:hover { transform: translateY(-3px); border-color: hsl(var(--primary) / 0.6); box-shadow: 0 12px 30px hsl(var(--primary) / 0.18); }
+.ov-quick-card-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: hsl(var(--primary)); font-weight: 600; margin-bottom: 6px; }
+.ov-quick-card-title { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.ov-quick-card-meta { font-size: 12px; color: #9CA3AF; }
+
+.ov-banner {
+  margin-top: 14px;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 12px;
+  background: rgba(36, 113, 245, 0.10);
+  border: 1px solid hsl(var(--primary) / 0.3);
+  border-radius: 999px;
+  font-size: 12px; color: hsl(var(--primary));
+  width: fit-content;
+}
+
+/* ════════════════════════════════════════════════════════════════
    DRILL PANEL — slide-in da direita
    ════════════════════════════════════════════════════════════════ */
 #drillBackdrop {
@@ -3700,8 +3728,15 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
         <div class="ov-hero">
           <div class="ov-hero-greeting">Maio de 2026</div>
           <div class="ov-hero-title">Olá, Allyson</div>
-          <div class="ov-hero-sub">Sua infraestrutura está saudável. 4 tenants em produção, 12.847 execuções nos últimos 7 dias, 98,7% de aprovação em assertions.</div>
+          <div class="ov-hero-sub" id="ovHeroSub">Sua infraestrutura está saudável. <strong id="ovHeroExecs">12.847</strong> execuções nos últimos 7 dias, <strong id="ovHeroApproval">98,7%</strong> de aprovação em assertions GovAI.</div>
+          <div class="ov-banner" id="ovDomainBanner" style="display:none">
+            <span class="ob-banner-dot"></span>
+            <span>Vendo dados de <strong class="ov-banner-name">—</strong></span>
+            <button class="ob-banner-clear" id="ovBannerClear">limpar</button>
+          </div>
         </div>
+
+        <div class="ov-quick-cards" id="ovQuickCards"></div>
 
         <div class="ov-grid">
           <div>
@@ -3733,8 +3768,11 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
             </div>
 
             <div class="ov-activity">
-              <div class="ov-activity-title">Atividade recente</div>
-              <div class="ov-timeline">
+              <div class="ov-activity-title">Atividade recente · <span style="font-size:12px;color:#6B7280;font-weight:400">live</span></div>
+              <div class="ov-timeline" id="ovTimeline">
+                <!-- renderOverview popula -->
+              </div>
+              <template id="ovTimelineLegacy" hidden>
                 <div class="ov-event">
                   <div class="ov-event-dot ok"></div>
                   <div class="ov-event-text"><strong>Pipeline de validação executou com sucesso</strong> · agente <code>analise-aluno-nee@v1.4</code> · tenant inclua-piloto-rede-x · 20/20 assertions aprovadas</div>
@@ -3760,7 +3798,7 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
                   <div class="ov-event-text"><strong>Domínio "SST · NR-01" promovido para beta</strong> · 5 agentes · 14 assertions ativas</div>
                   <div class="ov-event-time">ontem</div>
                 </div>
-              </div>
+              </template>
             </div>
           </div>
 
@@ -5809,6 +5847,87 @@ renderAssertionDrill = function (a, eyebrow, title, body, foot) {
 };
 
 renderAssertions(state);
+
+// ════════════════════════════════════════════════════════════════
+// OVERVIEW v2
+// ════════════════════════════════════════════════════════════════
+function relativeTime(ts) {
+  const ms = Date.now() - ts;
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'agora';
+  if (min < 60) return 'há ' + min + ' min';
+  const h = Math.floor(min / 60);
+  if (h < 24) return 'há ' + h + ' h';
+  return 'ontem';
+}
+
+function renderOverview(s) {
+  const qc = document.getElementById('ovQuickCards');
+  const banner = document.getElementById('ovDomainBanner');
+  const heroSub = document.getElementById('ovHeroSub');
+  const timeline = document.getElementById('ovTimeline');
+  if (!qc) return;
+
+  const d = activeDomainData();
+  const m = activeMetrics();
+
+  // Hero reativo
+  const periodLabel = ({'1d':'últimas 24 horas','7d':'últimos 7 dias','30d':'últimos 30 dias'})[s.period];
+  if (heroSub) {
+    setHTML(heroSub,
+      'Sua infraestrutura está saudável. <strong>' + m.execs.toLocaleString('pt-BR') + '</strong> execuções nas '
+      + periodLabel + ', <strong>' + m.approval.toFixed(1) + '%</strong> de aprovação em assertions'
+      + (d ? ' de <strong>' + d.fullName + '</strong>.' : ' GovAI.')
+    );
+  }
+
+  // Banner
+  if (d) {
+    banner.style.display = 'inline-flex';
+    banner.querySelector('.ov-banner-name').textContent = d.fullName;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // Quick cards (3 featured GovAI)
+  setHTML(qc, Object.values(KAIROS_DATA.featured).map(dd => {
+    const dm = dd.metrics[s.period];
+    return '<article class="ov-quick-card" data-quick="' + dd.id + '">'
+      + '<div class="ov-quick-card-eyebrow">' + dd.regulators[0] + '</div>'
+      + '<div class="ov-quick-card-title">' + dd.fullName + '</div>'
+      + '<div class="ov-quick-card-meta">' + dm.execs.toLocaleString('pt-BR') + ' execs · ' + dm.cost + ' · aprovação ' + dm.approval.toFixed(1) + '%</div>'
+      + '</article>';
+  }).join(''));
+
+  qc.querySelectorAll('.ov-quick-card').forEach(el => {
+    el.addEventListener('click', () => {
+      setState({ currentDomain: el.dataset.quick });
+      appNavigate('playground');
+      pgLoad();
+    });
+  });
+
+  // Activity timeline (mesmo formato do ov-event original)
+  if (timeline) {
+    if (s.ticker.recentTraces.length === 0) {
+      state.ticker.recentTraces = synthInitialTraces(8);
+    }
+    const recent = state.ticker.recentTraces.slice(0, 6);
+    setHTML(timeline, recent.map(t =>
+      '<div class="ov-event">'
+      + '<div class="ov-event-dot ok"></div>'
+      + '<div class="ov-event-text"><strong>' + t.scenarioName + '</strong> · agente <code>' + t.agent + '</code> · domínio <strong>' + t.domainName + '</strong> · ' + t.pipeline.length + '/' + t.pipeline.length + ' assertions aprovadas</div>'
+      + '<div class="ov-event-time">' + relativeTime(t.timestamp) + '</div>'
+      + '</div>'
+    ).join(''));
+  }
+}
+subscribe(renderOverview);
+
+const ovBannerClearBtn = document.getElementById('ovBannerClear');
+if (ovBannerClearBtn) ovBannerClearBtn.addEventListener('click', () => setState({ currentDomain: null }));
+
+renderOverview(state);
 
 // Auto-scale para caber em qualquer viewport mantendo proporção 1920x1080
 function fitScale() {
