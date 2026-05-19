@@ -1824,6 +1824,57 @@ body.recording-mode .app-mode-hint { display: none; }
 body.app-mode .slide-mockup { display: none !important; }
 
 /* ════════════════════════════════════════════════════════════════
+   CATALOG v2 — placeholders + filters
+   ════════════════════════════════════════════════════════════════ */
+#kairosApp .domain-card.placeholder {
+  background: rgba(255, 255, 255, 0.015);
+  border-style: dashed;
+  opacity: 0.85;
+}
+#kairosApp .domain-card.placeholder:hover {
+  opacity: 1;
+  border-style: solid;
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.08);
+}
+#kairosApp .domain-status.onboarding {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #F59E0B;
+}
+#kairosApp .domain-eta {
+  font-size: 12px;
+  color: #6B7280;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #1F2230;
+}
+#kairosApp .domain-eta strong { color: #F59E0B; }
+
+.catalog-filters {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.catalog-search {
+  display: flex; align-items: center; gap: 10px;
+  background: #0B0C12;
+  border: 1px solid #252836;
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-width: 320px;
+  color: #6B7280;
+}
+.catalog-search:focus-within { border-color: hsl(var(--primary) / 0.5); color: hsl(var(--primary)); }
+.catalog-search input {
+  background: none; border: none;
+  color: #E5E7EB;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px; outline: none; flex: 1;
+}
+.catalog-search input::placeholder { color: #4A5160; }
+.catalog-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ════════════════════════════════════════════════════════════════
    DRILL PANEL — slide-in da direita
    ════════════════════════════════════════════════════════════════ */
 #drillBackdrop {
@@ -3114,7 +3165,23 @@ body.drill-open #drillPanel { transform: translateX(0); }
             <div class="page-stat"><div class="page-stat-val">20+</div><div class="page-stat-key">Reguladores</div></div>
           </div>
         </div>
-        <div class="domain-grid">
+        <div class="catalog-filters">
+          <div class="catalog-search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="catalogSearch" placeholder="Buscar por nome ou regulador..." autocomplete="off">
+          </div>
+          <div class="catalog-chips" id="catalogChips">
+            <button class="ag-chip active" data-filter="all">Todos</button>
+            <button class="ag-chip" data-filter="govai">GovAI</button>
+            <button class="ag-chip" data-filter="lei14133">Lei 14.133</button>
+            <button class="ag-chip" data-filter="lgpd">LGPD</button>
+            <button class="ag-chip" data-filter="onboarding">Em onboarding</button>
+          </div>
+        </div>
+        <div class="domain-grid" id="catalogGrid">
+          <!-- renderCatalog() popula -->
+        </div>
+        <template id="catalogLegacyArchive" hidden>
           <div class="domain-card featured" data-domain="trabalhista">
             <div class="domain-card-head">
               <div class="domain-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg></div>
@@ -3219,7 +3286,7 @@ body.drill-open #drillPanel { transform: translateX(0); }
               <div class="domain-metric"><div class="domain-metric-val">7</div><div class="domain-metric-key">Cenários</div></div>
             </div>
           </div>
-        </div>
+        </template>
       </div>
     </div>
 
@@ -4604,6 +4671,113 @@ function showAppToast(msg) {
   clearTimeout(__toastTimer);
   __toastTimer = setTimeout(() => toast.classList.remove('visible'), 1500);
 }
+
+// ════════════════════════════════════════════════════════════════
+// CATALOG v2 — cards renderizados a partir de KAIROS_DATA
+// ════════════════════════════════════════════════════════════════
+const DOMAIN_ICONS = {
+  contract:  '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>',
+  document:  '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+  shield:    '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  eye:       '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>',
+  message:   '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  users:     '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+  heart:     '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+  school:    '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
+  dollar:    '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+};
+function domainIconSVG(hint) {
+  return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + (DOMAIN_ICONS[hint] || DOMAIN_ICONS.document) + '</svg>';
+}
+
+function renderCatalog(s) {
+  const grid = document.getElementById('catalogGrid');
+  if (!grid) return;
+
+  const featured = Object.values(KAIROS_DATA.featured);
+  const placeholders = KAIROS_DATA.placeholders;
+  const query = s.filters.catalog.query.toLowerCase().trim();
+  const regulator = s.filters.catalog.regulator;
+
+  function matches(d, isFeatured) {
+    if (query) {
+      const hay = (d.name + ' ' + d.fullName + ' ' + (d.regulators || []).join(' ')).toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    if (regulator === 'all') return true;
+    if (regulator === 'lei14133')   return (d.regulators || []).some(r => r.includes('14.133'));
+    if (regulator === 'lgpd')       return (d.regulators || []).some(r => r.toLowerCase().includes('lgpd'));
+    if (regulator === 'govai')      return d.cluster === 'govai';
+    if (regulator === 'onboarding') return !isFeatured;
+    return true;
+  }
+
+  const featuredCards = featured.filter(d => matches(d, true)).map(d =>
+    '<article class="domain-card featured" data-domain-id="' + d.id + '" data-featured="true">'
+    + '<div class="domain-card-head">'
+    + '<div class="domain-icon">' + domainIconSVG(d.iconHint) + '</div>'
+    + '<span class="domain-status">Ativo</span>'
+    + '</div>'
+    + '<div class="domain-name">' + d.fullName + '</div>'
+    + '<div class="domain-regulator">' + d.regulators.join(' &middot; ') + '</div>'
+    + '<div class="domain-metrics">'
+    + '<div class="domain-metric"><div class="domain-metric-val">' + d.agents.length + '</div><div class="domain-metric-key">Agentes</div></div>'
+    + '<div class="domain-metric"><div class="domain-metric-val">' + d.assertions.length + '</div><div class="domain-metric-key">Assertions</div></div>'
+    + '<div class="domain-metric"><div class="domain-metric-val">' + d.scenarios.length + '</div><div class="domain-metric-key">Cenários</div></div>'
+    + '</div>'
+    + '</article>'
+  ).join('');
+
+  const placeholderCards = placeholders.filter(d => matches(d, false)).map(d =>
+    '<article class="domain-card placeholder" data-domain-id="' + d.id + '" data-featured="false">'
+    + '<div class="domain-card-head">'
+    + '<div class="domain-icon">' + domainIconSVG(d.iconHint) + '</div>'
+    + '<span class="domain-status onboarding">Onboarding</span>'
+    + '</div>'
+    + '<div class="domain-name">' + d.fullName + '</div>'
+    + '<div class="domain-regulator">' + d.regulators.join(' &middot; ') + '</div>'
+    + '<div class="domain-eta">ETA: <strong>' + d.eta + '</strong></div>'
+    + '</article>'
+  ).join('');
+
+  if (!featuredCards && !placeholderCards) {
+    setHTML(grid, '<div style="grid-column:1/-1;padding:32px;text-align:center;color:#6B7280">Nenhum domínio bate com o filtro.</div>');
+  } else {
+    setHTML(grid, featuredCards + placeholderCards);
+  }
+
+  grid.querySelectorAll('.domain-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.domainId;
+      if (card.dataset.featured === 'true') {
+        openDrill('domain', KAIROS_DATA.featured[id]);
+      } else {
+        openDrill('placeholder', KAIROS_DATA.placeholders.find(p => p.id === id));
+      }
+    });
+  });
+}
+subscribe(renderCatalog);
+
+// Listeners do Catalog
+(function () {
+  const search = document.getElementById('catalogSearch');
+  if (search) {
+    search.addEventListener('input', (e) => {
+      setState({ filters: Object.assign({}, state.filters, { catalog: Object.assign({}, state.filters.catalog, { query: e.target.value }) }) });
+    });
+  }
+  document.querySelectorAll('#catalogChips .ag-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#catalogChips .ag-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      setState({ filters: Object.assign({}, state.filters, { catalog: Object.assign({}, state.filters.catalog, { regulator: chip.dataset.filter }) }) });
+    });
+  });
+})();
+
+// Render inicial do catalog
+renderCatalog(state);
 
 // ════════════════════════════════════════════════════════════════
 // MODO APLICAÇÃO
