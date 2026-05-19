@@ -1942,6 +1942,43 @@ body.app-mode .slide-mockup { display: none !important; }
 .ob-status-pass::before { content: ''; width: 6px; height: 6px; background: #22C55E; border-radius: 50%; }
 
 /* ════════════════════════════════════════════════════════════════
+   FINOPS v2 — budget card pulsante
+   ════════════════════════════════════════════════════════════════ */
+.fo-budget-card {
+  background: #0B0C12;
+  border: 1px solid #1F2230;
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.fo-budget-card:hover { border-color: hsl(var(--primary) / 0.4); box-shadow: 0 8px 22px hsl(var(--primary) / 0.12); }
+.fo-budget-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.fo-budget-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B7280; font-weight: 600; margin-bottom: 6px; }
+.fo-budget-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: #fff; }
+.fo-budget-pulse {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #F59E0B;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55);
+  animation: budgetPulse 2.4s ease-out infinite;
+}
+.fo-budget-card.danger .fo-budget-pulse { background: #EF4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+@keyframes budgetPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+  70%  { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+.fo-budget-bar-track { height: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 5px; overflow: hidden; margin-bottom: 10px; }
+.fo-budget-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #F59E0B, #EF4444);
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+.fo-budget-meta { font-size: 13px; color: #9CA3AF; }
+
+/* ════════════════════════════════════════════════════════════════
    DRILL PANEL — slide-in da direita
    ════════════════════════════════════════════════════════════════ */
 #drillBackdrop {
@@ -3963,6 +4000,13 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
             <div class="page-title">FinOps · Gestão de Custos</div>
             <div class="page-sub">Distribuição de custo por modelo, tenant e domínio · projeção mensal · alertas de orçamento</div>
           </div>
+          <div class="page-actions">
+            <div class="period-tabs" data-period-group="finops">
+              <button class="period-tab" data-period="1d">1d</button>
+              <button class="period-tab active" data-period="7d">7d</button>
+              <button class="period-tab" data-period="30d">30d</button>
+            </div>
+          </div>
         </div>
 
         <div class="fo-summary">
@@ -3985,8 +4029,11 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
 
         <div class="fo-row">
           <div class="fo-models-card">
-            <div class="chart-head"><span class="chart-title">Custo por modelo (7d)</span><span class="chart-period">USD</span></div>
-            <div class="fo-models-list">
+            <div class="chart-head"><span class="chart-title" id="foModelsTitle">Custo por modelo (7d)</span><span class="chart-period">USD</span></div>
+            <div class="fo-models-list" id="foModelsList">
+              <!-- renderFinOps popula. Legacy abaixo (mantido como template inert pra historia) -->
+            </div>
+            <template id="foModelsLegacy" hidden>
               <div class="fo-model">
                 <div class="fo-model-info">
                   <div class="fo-model-name">Claude Sonnet 4.6</div>
@@ -4027,7 +4074,7 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
                   <div class="fo-model-pct">6% · 1,5M tokens</div>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
 
           <div class="fo-models-card">
@@ -4075,6 +4122,20 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="fo-budget-card" id="foBudgetCard">
+          <div class="fo-budget-head">
+            <div>
+              <div class="fo-budget-eyebrow">Orçamento mensal</div>
+              <div class="fo-budget-title" id="foBudgetTitle">—</div>
+            </div>
+            <span class="fo-budget-pulse" id="foBudgetPulse"></span>
+          </div>
+          <div class="fo-budget-bar-track">
+            <div class="fo-budget-bar-fill" id="foBudgetFill" style="width:0%"></div>
+          </div>
+          <div class="fo-budget-meta" id="foBudgetMeta">—</div>
         </div>
       </div>
     </div>
@@ -5281,6 +5342,129 @@ renderTraceDrill = function (t, eyebrow, title, body, foot) {
     + '<div class="drill-section">'
     + '<div class="drill-section-title">Pipeline anti-alucinação</div>'
     + '<div class="drill-list">' + pipelineHtml + '</div>'
+    + '</div>'
+  );
+  setHTML(foot, '<button class="app-btn secondary" onclick="closeDrill()">Fechar</button>');
+};
+
+// ════════════════════════════════════════════════════════════════
+// FINOPS v2
+// ════════════════════════════════════════════════════════════════
+function formatCurrencyUSD(v) {
+  return 'US$ ' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderFinOps(s) {
+  const list = document.getElementById('foModelsList');
+  if (!list) return;
+
+  const d = activeDomainData();
+  const finops = d ? d.finops : KAIROS_DATA.global.finops;
+  const multiplier = ({'1d': 1/7, '7d': 1, '30d': 4.3})[s.period] || 1;
+  const periodSuffix = ({'1d':'24h','7d':'7d','30d':'30d'})[s.period] || '7d';
+
+  const titleEl = document.getElementById('foModelsTitle');
+  if (titleEl) titleEl.textContent = 'Custo por modelo (' + periodSuffix + (d ? ' · ' + d.fullName : '') + ')';
+
+  const palette = [
+    '',  // first uses default
+    'background: linear-gradient(90deg, hsl(var(--secondary)), hsl(var(--accent)));',
+    'background: #22C55E;',
+    'background: #F59E0B;',
+  ];
+
+  const html = finops.models.map((m, i) =>
+    '<div class="fo-model" data-model-name="' + m.name + '">'
+    + '<div class="fo-model-info">'
+    + '<div class="fo-model-name">' + m.name + '</div>'
+    + '<div class="fo-model-bar-track"><div class="fo-model-bar-fill" style="width:' + m.pct + '%;' + (palette[i] || '') + '"></div></div>'
+    + '</div>'
+    + '<div>'
+    + '<div class="fo-model-cost">' + formatCurrencyUSD(m.cost * multiplier) + '</div>'
+    + '<div class="fo-model-pct">' + m.pct + '% · ' + m.tokens + '</div>'
+    + '</div>'
+    + '</div>'
+  ).join('');
+  setHTML(list, html);
+
+  list.querySelectorAll('.fo-model').forEach(el => {
+    el.addEventListener('click', () => {
+      const name = el.dataset.modelName;
+      const m = finops.models.find(mm => mm.name === name);
+      if (!m) return;
+      const topPrompts = (d && d.finops && d.finops.topPrompts) ? d.finops.topPrompts.filter(p => p.model === name) : [];
+      openDrill('model', Object.assign({}, m, {
+        cost: m.cost * multiplier,
+        domainName: d ? d.fullName : 'Agregado',
+        topPrompts,
+        period: s.period,
+      }));
+    });
+  });
+
+  renderFinOpsBudget(s);
+}
+subscribe(renderFinOps);
+
+function renderFinOpsBudget(s) {
+  const card = document.getElementById('foBudgetCard');
+  if (!card) return;
+  const d = activeDomainData();
+  const finops = d ? d.finops : KAIROS_DATA.global.finops;
+  const b = finops.budget;
+  document.getElementById('foBudgetTitle').textContent = (d ? d.name : 'Sistema agregado') + ' · ' + b.used + '% do orçamento';
+  document.getElementById('foBudgetFill').style.width = b.used + '%';
+  document.getElementById('foBudgetMeta').textContent =
+    b.currency + ' ' + b.current.toLocaleString('pt-BR') + ' de ' + b.currency + ' ' + b.limit.toLocaleString('pt-BR') + ' consumidos no mês — projeção EOM: ' + b.currency + ' ' + Math.round(b.current * 1.18).toLocaleString('pt-BR');
+  card.classList.toggle('danger', b.used >= 80);
+  card.onclick = () => openDrill('budget', Object.assign({}, b, { domainName: d ? d.fullName : 'Sistema agregado' }));
+}
+
+// Override stubs com versões completas
+renderModelDrill = function (m, eyebrow, title, body, foot) {
+  eyebrow.textContent = 'Modelo · ' + m.domainName;
+  title.textContent = m.name;
+  const topHtml = (m.topPrompts || []).length === 0
+    ? '<p style="color:#6B7280">Sem detalhamento por prompt para este modelo no recorte atual.</p>'
+    : m.topPrompts.map(p =>
+        '<div class="drill-list-item">'
+        + '<div class="di-title">' + p.label + '</div>'
+        + '<div class="di-meta">' + p.runs + ' execuções · ' + formatCurrencyUSD(p.costSum) + '</div>'
+        + '</div>'
+      ).join('');
+  setHTML(body,
+    '<div class="drill-section">'
+    + '<dl class="drill-kv">'
+    + '<dt>Custo (período)</dt><dd>' + formatCurrencyUSD(m.cost) + '</dd>'
+    + '<dt>Tokens</dt><dd>' + m.tokens + '</dd>'
+    + '<dt>Share</dt><dd>' + m.pct + '%</dd>'
+    + '</dl></div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Top prompts por custo</div>'
+    + '<div class="drill-list">' + topHtml + '</div>'
+    + '</div>'
+  );
+  setHTML(foot, '<button class="app-btn secondary" onclick="closeDrill()">Fechar</button>');
+};
+
+renderBudgetDrill = function (b, eyebrow, title, body, foot) {
+  eyebrow.textContent = 'Orçamento';
+  title.textContent = b.domainName;
+  setHTML(body,
+    '<div class="drill-section">'
+    + '<dl class="drill-kv">'
+    + '<dt>Limite mensal</dt><dd>' + b.currency + ' ' + b.limit.toLocaleString('pt-BR') + '</dd>'
+    + '<dt>Consumido</dt><dd>' + b.currency + ' ' + b.current.toLocaleString('pt-BR') + ' (' + b.used + '%)</dd>'
+    + '<dt>Restante</dt><dd>' + b.currency + ' ' + (b.limit - b.current).toLocaleString('pt-BR') + '</dd>'
+    + '<dt>Projeção EOM</dt><dd>' + b.currency + ' ' + Math.round(b.current * 1.18).toLocaleString('pt-BR') + '</dd>'
+    + '</dl></div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Histórico (últimos 30 dias)</div>'
+    + '<p>Consumo médio diário: ' + b.currency + ' ' + Math.round(b.current / 22).toLocaleString('pt-BR') + '. Pico em D-3 (' + b.currency + ' ' + Math.round(b.current / 16).toLocaleString('pt-BR') + ') por execução em lote do squad fiscal/jurídico do domínio.</p>'
+    + '</div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Recomendação</div>'
+    + '<p>' + (b.used >= 80 ? 'Considerar elevação do teto ou cap por agente.' : 'Sob controle. Sem ação requerida.') + '</p>'
     + '</div>'
   );
   setHTML(foot, '<button class="app-btn secondary" onclick="closeDrill()">Fechar</button>');
