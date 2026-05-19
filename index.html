@@ -1874,6 +1874,24 @@ body.app-mode .slide-mockup { display: none !important; }
 .catalog-search input::placeholder { color: #4A5160; }
 .catalog-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 
+.pg-scenario-picker {
+  margin-top: 10px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px;
+}
+.pg-scenario-picker label { color: #6B7280; }
+.pg-scenario-picker select {
+  background: #0B0C12;
+  border: 1px solid #252836;
+  border-radius: 6px;
+  color: #E5E7EB;
+  padding: 6px 28px 6px 12px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pg-scenario-picker select:focus { outline: none; border-color: hsl(var(--primary) / 0.5); }
+
 /* ════════════════════════════════════════════════════════════════
    DRILL PANEL — slide-in da direita
    ════════════════════════════════════════════════════════════════ */
@@ -3295,8 +3313,12 @@ body.drill-open #drillPanel { transform: translateX(0); }
       <div class="studio-main">
         <div class="page-head">
           <div>
-            <div class="page-title">Anti-alucinação em 4 camadas</div>
+            <div class="page-title" id="pgTitle">Anti-alucinação em 4 camadas</div>
             <div class="page-sub" id="pgSub">Selecione um domínio para iniciar uma execução</div>
+            <div class="pg-scenario-picker" id="pgScenarioPicker" style="display:none">
+              <label>Cenário:</label>
+              <select id="pgScenarioSelect"></select>
+            </div>
           </div>
           <div class="page-actions">
             <button class="app-btn secondary" id="pgReset" style="display:none">Reset</button>
@@ -4855,76 +4877,173 @@ document.querySelectorAll('#kairosApp .domain-card').forEach(card => {
 // PLAYGROUND — fluxo interativo
 // ════════════════════════════════════════════════════════════════
 function pgLoad() {
+  const d = activeDomainData();
+  const picker = document.getElementById('pgScenarioPicker');
+  const select = document.getElementById('pgScenarioSelect');
+
+  if (!d) {
+    document.getElementById('pgSub').textContent = 'Nenhum domínio ativo. Volte ao Catálogo e selecione um featured.';
+    if (picker) picker.style.display = 'none';
+    document.getElementById('pgEmpty').style.display = 'flex';
+    document.getElementById('pgLoaded').style.display = 'none';
+    document.getElementById('pgRun').style.display = 'none';
+    document.getElementById('pgReset').style.display = 'none';
+    document.getElementById('pgGoObserv').style.display = 'none';
+    return;
+  }
+
+  // Atualiza título e popula picker de cenários
+  document.getElementById('pgTitle').textContent = 'Anti-alucinação · ' + d.fullName;
+  setHTML(select, d.scenarios.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join(''));
+  picker.style.display = 'flex';
+
+  pgRenderScenario(d, d.scenarios[0]);
+  pgRenderPipeline(d);
+
   document.getElementById('pgEmpty').style.display = 'none';
   document.getElementById('pgLoaded').style.display = 'grid';
   document.getElementById('pgRun').style.display = 'inline-flex';
   document.getElementById('pgReset').style.display = 'none';
   document.getElementById('pgGoObserv').style.display = 'none';
-  document.getElementById('pgSub').textContent = 'Agente analise-aluno-nee@v1.4 carregado · clique Executar para iniciar';
 
-  // Estado inicial: sem checks, sem output, sem sumário
-  document.querySelectorAll('#pgPipeline .validation-step').forEach(s => {
-    s.classList.remove('running', 'pass');
-  });
+  document.querySelectorAll('#pgPipeline .validation-step').forEach(s => s.classList.remove('running', 'pass'));
   document.getElementById('pgOutput').classList.remove('visible');
   document.getElementById('pgSummary').classList.remove('visible');
+
+  document.getElementById('pgSub').textContent = 'Agente ' + d.agents[0].id + ' carregado · cenário "' + d.scenarios[0].name + '" · clique Executar';
+}
+
+function pgRenderScenario(d, scenario) {
+  setHTML(
+    document.getElementById('pgInput'),
+    '<span class="key">cenario</span>: <span class="str">"' + scenario.name + '"</span>,\n'
+    + '<span class="key">agente</span>: <span class="str">"' + scenario.agent + '"</span>,\n'
+    + '<span class="key">input</span>: <span class="str">"' + scenario.input.replace(/"/g, '\\"') + '"</span>'
+  );
+  // Mantém output limpo até execução
+  setHTML(document.getElementById('pgOutput'), '<em style="color:#6B7280">Aguardando execução para mostrar a saída validada do cenário.</em>');
+  document.getElementById('pgOutput').classList.remove('visible');
+}
+
+function pgRenderPipeline(d) {
+  const pipelineEl = document.getElementById('pgPipeline');
+  if (!pipelineEl) return;
+  const steps = d.assertions.filter(a => a.pipeline).sort((a, b) => (a.pipelineOrder || 0) - (b.pipelineOrder || 0)).slice(0, 4);
+  const html = steps.map((a, i) =>
+    '<div class="validation-step" data-step="' + (i + 1) + '" data-assertion="' + a.name + '">'
+    + '<div class="val-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>'
+    + '<div><div class="val-step-name"><span class="val-step-num">' + String(i + 1).padStart(2, '0') + ' ·</span> ' + a.description + '</div>'
+    + '<div class="val-step-desc"><code>' + a.name + '</code></div></div>'
+    + '<div class="val-step-time" data-time="—">—</div>'
+    + '</div>'
+  ).join('');
+  setHTML(pipelineEl, html);
 }
 
 function pgReset() {
-  document.getElementById('pgEmpty').style.display = 'flex';
-  document.getElementById('pgLoaded').style.display = 'none';
-  document.getElementById('pgRun').style.display = 'none';
-  document.getElementById('pgReset').style.display = 'none';
-  document.getElementById('pgGoObserv').style.display = 'none';
-  document.getElementById('pgSub').textContent = 'Selecione um domínio para iniciar uma execução';
+  setState({ currentDomain: null });
+  pgLoad();
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function pgRun() {
+  const d = activeDomainData();
+  if (!d) return;
+  const scenarioId = document.getElementById('pgScenarioSelect').value;
+  const scenario = d.scenarios.find(s => s.id === scenarioId) || d.scenarios[0];
+
   const runBtn = document.getElementById('pgRun');
   runBtn.disabled = true;
-  runBtn.innerHTML = '<span class="app-spinner"></span> Executando...';
+  setHTML(runBtn, '<span class="app-spinner"></span> Executando...');
 
   document.getElementById('pgSub').textContent = 'Pipeline anti-alucinação em execução...';
 
-  // Reseta visual
-  document.querySelectorAll('#pgPipeline .validation-step').forEach(s => {
-    s.classList.remove('running', 'pass');
-  });
+  document.querySelectorAll('#pgPipeline .validation-step').forEach(s => s.classList.remove('running', 'pass'));
   document.getElementById('pgOutput').classList.remove('visible');
   document.getElementById('pgSummary').classList.remove('visible');
 
-  // Anima cada step do pipeline
   const steps = document.querySelectorAll('#pgPipeline .validation-step');
+  const stepTimes = [];
   for (const step of steps) {
     step.classList.add('running');
-    await sleep(450);
+    const ms = 320 + Math.floor(Math.random() * 280);
+    await sleep(ms);
+    stepTimes.push(ms);
     step.classList.remove('running');
     step.classList.add('pass');
-    await sleep(180);
+    const t = step.querySelector('.val-step-time');
+    if (t) { t.textContent = ms + ' ms'; t.dataset.time = ms + ' ms'; }
+    await sleep(120);
   }
 
-  // Mostra output
+  // Output do cenário
   await sleep(150);
+  setHTML(document.getElementById('pgOutput'),
+    '<strong>Saída validada (' + scenario.name + '):</strong><br><br>' + scenario.output_mock
+  );
   document.getElementById('pgOutput').classList.add('visible');
 
-  // Mostra sumário
-  await sleep(300);
+  await sleep(280);
+  const totalMs = stepTimes.reduce((a, b) => a + b, 0);
+  const tokens = 2100 + Math.floor(Math.random() * 2200);
+  const costUsd = (tokens / 1_000_000 * 3.0).toFixed(4);
+  setHTML(document.getElementById('pgSummary'),
+    '<div class="summary-stat"><div class="summary-val">' + tokens.toLocaleString('pt-BR') + '</div><div class="summary-key">Tokens</div></div>'
+    + '<div class="summary-stat"><div class="summary-val">US$ ' + costUsd + '</div><div class="summary-key">Custo</div></div>'
+    + '<div class="summary-stat"><div class="summary-val">' + (totalMs / 1000).toFixed(2) + ' s</div><div class="summary-key">Latência</div></div>'
+    + '<div class="summary-stat success"><div class="summary-val">' + steps.length + '/' + steps.length + '</div><div class="summary-key">Assertions</div></div>'
+  );
   document.getElementById('pgSummary').classList.add('visible');
 
-  // Atualiza botões
-  runBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg> Executar';
+  setHTML(runBtn, '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg> Executar');
   runBtn.disabled = false;
   runBtn.style.display = 'none';
   document.getElementById('pgReset').style.display = 'inline-flex';
   document.getElementById('pgGoObserv').style.display = 'inline-flex';
-  document.getElementById('pgSub').innerHTML = 'Execução concluída · <strong style="color:#22C55E">100% das assertions aprovadas</strong> · 1.27s · 3.417 tokens';
+  setHTML(document.getElementById('pgSub'),
+    'Execução concluída · <strong style="color:#22C55E">' + steps.length + '/' + steps.length + ' assertions aprovadas</strong> · ' + (totalMs/1000).toFixed(2) + 's · ' + tokens.toLocaleString('pt-BR') + ' tokens'
+  );
+
+  emitTrace({
+    id: 't' + Date.now().toString(36),
+    timestamp: Date.now(),
+    domain: d.id,
+    domainName: d.name,
+    agent: d.agents[0].role,
+    scenarioId: scenario.id,
+    scenarioName: scenario.name,
+    status: 'pass',
+    durationMs: totalMs,
+    tokens,
+    pipeline: Array.from(steps).map((step, i) => {
+      const aName = step.dataset.assertion;
+      const a = d.assertions.find(x => x.name === aName);
+      return { name: aName, description: (a && a.description) || '', durationMs: stepTimes[i], status: 'pass' };
+    }),
+  });
+}
+
+function emitTrace(trace) {
+  const list = state.ticker.recentTraces.slice();
+  list.unshift(trace);
+  if (list.length > 20) list.length = 20;
+  setState({ ticker: Object.assign({}, state.ticker, { recentTraces: list }) });
 }
 
 document.getElementById('pgRun').addEventListener('click', pgRun);
-document.getElementById('pgReset').addEventListener('click', pgLoad);
+document.getElementById('pgReset').addEventListener('click', () => pgLoad());
 document.getElementById('pgGoObserv').addEventListener('click', () => appNavigate('observability'));
+document.getElementById('pgScenarioSelect').addEventListener('change', (e) => {
+  const d = activeDomainData();
+  if (!d) return;
+  const sc = d.scenarios.find(s => s.id === e.target.value);
+  if (!sc) return;
+  pgRenderScenario(d, sc);
+  document.querySelectorAll('#pgPipeline .validation-step').forEach(s => s.classList.remove('running', 'pass'));
+  document.getElementById('pgSummary').classList.remove('visible');
+  document.getElementById('pgSub').textContent = 'Cenário "' + sc.name + '" pronto · clique Executar';
+});
 
 // ════════════════════════════════════════════════════════════════
 // OBSERVABILIDADE — KPI animation + period filter
