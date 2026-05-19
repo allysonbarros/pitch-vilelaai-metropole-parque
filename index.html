@@ -4756,6 +4756,14 @@ document.addEventListener('keydown', (e) => {
       else toggleApp();
       return;
     }
+    // Tecla B (back) — alternativa pra sair do app-mode sem usar Esc.
+    // Útil em browsers sem Keyboard Lock API (Safari/Firefox) onde Esc em
+    // fullscreen é capturado pelo browser pra sair do fullscreen primeiro.
+    if (e.key === 'B' || e.key === 'b') {
+      if (state.drillDown) closeDrill();
+      else toggleApp();
+      return;
+    }
     if (e.key === 'D' || e.key === 'd') {
       if (state.drillDown) closeDrill();
       return;
@@ -4786,9 +4794,27 @@ function toggleRecording() {
   btn.textContent = document.body.classList.contains('recording-mode') ? '📹 Gravando' : '📹 Gravar';
 }
 function toggleFullscreen() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-  else document.exitFullscreen();
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().then(() => {
+      // Keyboard Lock API: impede o browser de capturar Esc para sair de fullscreen,
+      // permitindo que nosso handler de keydown receba o evento (Chrome/Edge).
+      if (navigator.keyboard && navigator.keyboard.lock) {
+        navigator.keyboard.lock(['Escape']).catch(() => {});
+      }
+    }).catch(() => {});
+  } else {
+    if (navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+    document.exitFullscreen().catch(() => {});
+  }
 }
+
+// Quando o fullscreen é cancelado por outra via (ex: gesto do sistema),
+// libera o keyboard lock pra não travar Esc em estado bagunçado.
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && navigator.keyboard && navigator.keyboard.unlock) {
+    navigator.keyboard.unlock();
+  }
+});
 
 // ════════════════════════════════════════════════════════════════
 // HTML setter helper (data is curated in KAIROS_DATA — no user input)
