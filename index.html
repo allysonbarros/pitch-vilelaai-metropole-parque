@@ -5929,6 +5929,58 @@ if (ovBannerClearBtn) ovBannerClearBtn.addEventListener('click', () => setState(
 
 renderOverview(state);
 
+// ════════════════════════════════════════════════════════════════
+// TICKER — simulação de atividade ao vivo
+// ════════════════════════════════════════════════════════════════
+const TICK_INTERVAL_MS = 9000;
+
+function shouldTickerRun() {
+  if (state.ticker.paused) return false;
+  if (state.drillDown) return false;
+  if (state.currentScreen === 'playground') return false;
+  if (document.body.classList.contains('recording-mode')) return false;
+  if (!document.body.classList.contains('app-mode')) return false;
+  return true;
+}
+
+function tick() {
+  if (!shouldTickerRun()) return;
+
+  // Incrementa execs global do período atual
+  const inc = 6 + Math.floor(Math.random() * 13);
+  if (KAIROS_DATA.global.metrics[state.period]) {
+    KAIROS_DATA.global.metrics[state.period].execs += inc;
+  }
+
+  // Gera nova trace (rotation entre featured)
+  const featured = Object.values(KAIROS_DATA.featured);
+  const d = featured[Math.floor(Math.random() * featured.length)];
+  const sc = d.scenarios[Math.floor(Math.random() * d.scenarios.length)];
+  const trace = {
+    id: 't' + Date.now().toString(36) + Math.floor(Math.random() * 99),
+    timestamp: Date.now(),
+    domain: d.id,
+    domainName: d.name,
+    agent: d.agents[0].role,
+    scenarioId: sc.id,
+    scenarioName: sc.name,
+    status: 'pass',
+    durationMs: 850 + Math.floor(Math.random() * 1100),
+    tokens: 1900 + Math.floor(Math.random() * 3300),
+    pipeline: d.assertions.filter(a => a.pipeline).slice(0, 4).map(a => ({
+      name: a.name, description: a.description,
+      durationMs: 220 + Math.floor(Math.random() * 260),
+      status: 'pass',
+    })),
+  };
+  const list = state.ticker.recentTraces.slice();
+  list.unshift(trace);
+  if (list.length > 20) list.length = 20;
+  setState({ ticker: Object.assign({}, state.ticker, { recentTraces: list, lastTick: Date.now() }) });
+}
+
+setInterval(tick, TICK_INTERVAL_MS);
+
 // Auto-scale para caber em qualquer viewport mantendo proporção 1920x1080
 function fitScale() {
   const sx = window.innerWidth / 1920;
