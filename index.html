@@ -1893,6 +1893,55 @@ body.app-mode .slide-mockup { display: none !important; }
 .pg-scenario-picker select:focus { outline: none; border-color: hsl(var(--primary) / 0.5); }
 
 /* ════════════════════════════════════════════════════════════════
+   OBSERVABILITY v2 — domain banner + trace table
+   ════════════════════════════════════════════════════════════════ */
+.ob-domain-banner {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 8px;
+  padding: 4px 12px;
+  background: rgba(36, 113, 245, 0.10);
+  border: 1px solid hsl(var(--primary) / 0.3);
+  border-radius: 999px;
+  font-size: 12px;
+  color: hsl(var(--primary));
+  width: fit-content;
+}
+.ob-banner-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: hsl(var(--primary));
+  box-shadow: 0 0 6px hsl(var(--primary));
+}
+.ob-banner-clear {
+  background: none; border: none;
+  color: hsl(var(--primary));
+  cursor: pointer; text-decoration: underline; font-size: 12px;
+}
+
+.ob-traces { margin-top: 32px; }
+.ob-traces-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.ob-traces-head h3 { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; color: #fff; }
+.ob-traces-meta { font-size: 12px; color: #6B7280; }
+.ob-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ob-table thead th {
+  text-align: left;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6B7280;
+  padding: 10px 14px;
+  border-bottom: 1px solid #1F2230;
+  font-weight: 600;
+}
+.ob-table tbody tr { cursor: pointer; transition: background 0.15s; }
+.ob-table tbody tr:hover { background: rgba(36, 113, 245, 0.05); }
+.ob-table tbody td { padding: 12px 14px; border-bottom: 1px solid #14171F; color: #E5E7EB; }
+.ob-table .trace-new { animation: traceFadeIn 0.9s ease; }
+@keyframes traceFadeIn { from { background: rgba(36, 113, 245, 0.22); } to { background: transparent; } }
+.ob-status-pass { display: inline-flex; align-items: center; gap: 6px; color: #22C55E; }
+.ob-status-pass::before { content: ''; width: 6px; height: 6px; background: #22C55E; border-radius: 50%; }
+
+/* ════════════════════════════════════════════════════════════════
    DRILL PANEL — slide-in da direita
    ════════════════════════════════════════════════════════════════ */
 #drillBackdrop {
@@ -3406,6 +3455,11 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
           <div>
             <div class="page-title">Observabilidade Multi-Tenant</div>
             <div class="page-sub">Telemetria em tempo real · FinOps · LLMOps · Compliance</div>
+            <div class="ob-domain-banner" id="obDomainBanner" style="display:none">
+              <span class="ob-banner-dot"></span>
+              <span>Filtrado por <strong class="ob-banner-name">—</strong></span>
+              <button class="ob-banner-clear" id="obBannerClear">limpar</button>
+            </div>
           </div>
           <div class="page-actions">
             <div class="period-tabs" id="periodTabs">
@@ -3519,6 +3573,22 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
             <div class="tenant-meta-num">183</div><div class="tenant-meta-num">650 k</div><div class="tenant-meta-num">R$ 13,02</div>
             <div><span class="compliance-status ok">98,4%</span></div>
           </div>
+        </div>
+
+        <div class="ob-traces">
+          <div class="ob-traces-head">
+            <h3>Execuções recentes</h3>
+            <span class="ob-traces-meta" id="obTracesMeta">— · live</span>
+          </div>
+          <table class="ob-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th><th>Domínio</th><th>Cenário</th>
+                <th>Duração</th><th>Tokens</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="obTraceTbody"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -5062,40 +5132,159 @@ function animateNumber(el, target, duration = 700, formatter = (v) => v.toString
   requestAnimationFrame(step);
 }
 
-const periodData = {
-  '1d':  { execs: 1835, tokens: '6,3 M', custo: 'R$ 127', custoSub: 'US$ 24,77 · PTAX',  approval: '99,1%', execsSub: 'média 76 / hora', trend1: '↑ 8%',  trend2: '↑ 12%', trend4: '↑ 0,4%' },
-  '7d':  { execs: 12847, tokens: '43,9 M', custo: 'R$ 891', custoSub: 'US$ 173,42 · 5,138 BRL', approval: '98,7%', execsSub: 'média 1.835 / dia', trend1: '↑ 23%', trend2: '↑ 18%', trend4: '↑ 1,2%' },
-  '30d': { execs: 51284, tokens: '175,4 M', custo: 'R$ 3.621', custoSub: 'US$ 705,12 · 5,135 BRL', approval: '98,4%', execsSub: 'média 1.709 / dia', trend1: '↑ 31%', trend2: '↑ 27%', trend4: '↑ 0,9%' },
+// Period trend strings (subtítulos derivados de KAIROS_DATA.global)
+const PERIOD_LABELS = {
+  '1d':  { name: 'últimas 24 horas', subExecs: 'média 76 / hora',  subCusto: 'US$ 24,77 · PTAX',         trend1: '↑ 8%',  trend2: '↑ 12%', trend4: '↑ 0,4%' },
+  '7d':  { name: 'últimos 7 dias',   subExecs: 'média 1.835 / dia',subCusto: 'US$ 173,42 · 5,138 BRL',   trend1: '↑ 23%', trend2: '↑ 18%', trend4: '↑ 1,2%' },
+  '30d': { name: 'últimos 30 dias',  subExecs: 'média 1.709 / dia',subCusto: 'US$ 705,12 · 5,135 BRL',   trend1: '↑ 31%', trend2: '↑ 27%', trend4: '↑ 0,9%' },
 };
 
-function setPeriod(period) {
-  const d = periodData[period];
-  // Atualiza botões
-  document.querySelectorAll('#periodTabs .period-tab').forEach(b => {
-    b.classList.toggle('active', b.dataset.period === period);
-  });
-  document.getElementById('chartPeriod').textContent = ({'1d':'últimas 24 horas','7d':'últimos 7 dias','30d':'últimos 30 dias'})[period];
-  // Atualiza KPIs
-  animateNumber(document.getElementById('kpi1'), d.execs, 600, v => v.toLocaleString('pt-BR'));
-  document.getElementById('kpi1Sub').textContent = d.execsSub;
-  document.getElementById('kpi1Trend').textContent = d.trend1;
-  document.getElementById('kpi2').textContent = d.tokens;
-  document.getElementById('kpi2Trend').textContent = d.trend2;
-  document.getElementById('kpi3').textContent = d.custo;
-  document.getElementById('kpi3Sub').textContent = d.custoSub;
-  document.getElementById('kpi4').textContent = d.approval;
-  document.getElementById('kpi4Trend').textContent = d.trend4;
-}
+function setPeriod(period) { setState({ period }); }
 
-document.querySelectorAll('#periodTabs .period-tab').forEach(btn => {
+function renderObservability(s) {
+  if (!document.getElementById('kpi1')) return;
+  const d = activeDomainData();
+  const m = activeMetrics();
+  const lbl = PERIOD_LABELS[s.period] || PERIOD_LABELS['7d'];
+
+  // Atualiza TODAS as period-tabs (sync entre telas)
+  document.querySelectorAll('.period-tab').forEach(b => b.classList.toggle('active', b.dataset.period === s.period));
+
+  const chartP = document.getElementById('chartPeriod');
+  if (chartP) chartP.textContent = lbl.name;
+
+  const kpi1 = document.getElementById('kpi1');
+  const kpi2 = document.getElementById('kpi2');
+  const kpi3 = document.getElementById('kpi3');
+  const kpi4 = document.getElementById('kpi4');
+  if (kpi1) animateNumber(kpi1, m.execs, 600, v => v.toLocaleString('pt-BR'));
+  if (kpi2) kpi2.textContent = m.tokens;
+  if (kpi3) kpi3.textContent = m.cost;
+  if (kpi4) kpi4.textContent = m.approval.toFixed(1) + '%';
+
+  const sub1 = document.getElementById('kpi1Sub'); if (sub1) sub1.textContent = d ? d.fullName + ' · ' + lbl.subExecs : lbl.subExecs;
+  const sub3 = document.getElementById('kpi3Sub'); if (sub3) sub3.textContent = lbl.subCusto;
+  const t1 = document.getElementById('kpi1Trend'); if (t1) t1.textContent = lbl.trend1;
+  const t2 = document.getElementById('kpi2Trend'); if (t2) t2.textContent = lbl.trend2;
+  const t4 = document.getElementById('kpi4Trend'); if (t4) t4.textContent = lbl.trend4;
+
+  const banner = document.getElementById('obDomainBanner');
+  if (banner) {
+    if (d) {
+      banner.style.display = 'inline-flex';
+      banner.querySelector('.ob-banner-name').textContent = d.fullName;
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  renderTraceTable(s);
+}
+subscribe(renderObservability);
+
+document.querySelectorAll('.period-tab').forEach(btn => {
   btn.addEventListener('click', () => setPeriod(btn.dataset.period));
 });
 
-function animateKpis() {
-  const kpi1 = document.getElementById('kpi1');
-  const target = parseInt(kpi1.textContent.replace(/\./g, '')) || 12847;
-  animateNumber(kpi1, target, 700, v => v.toLocaleString('pt-BR'));
+document.getElementById('obBannerClear').addEventListener('click', () => setState({ currentDomain: null }));
+
+function animateKpis() { renderObservability(state); }
+
+// ─── Trace table ──────────────────────────────────────────
+function synthInitialTraces(n) {
+  const out = [];
+  const featured = Object.values(KAIROS_DATA.featured);
+  for (let i = 0; i < n; i++) {
+    const d = featured[i % featured.length];
+    const sc = d.scenarios[i % d.scenarios.length];
+    out.push({
+      id: 't' + (Date.now() - i * 47000).toString(36) + i,
+      timestamp: Date.now() - (i * 47000 + Math.floor(Math.random() * 30000)),
+      domain: d.id,
+      domainName: d.name,
+      agent: d.agents[0].role,
+      scenarioId: sc.id,
+      scenarioName: sc.name,
+      status: 'pass',
+      durationMs: 800 + Math.floor(Math.random() * 1100),
+      tokens: 1800 + Math.floor(Math.random() * 3500),
+      pipeline: d.assertions.filter(a => a.pipeline).slice(0, 4).map(a => ({
+        name: a.name, description: a.description,
+        durationMs: 200 + Math.floor(Math.random() * 280),
+        status: 'pass',
+      })),
+    });
+  }
+  return out;
 }
+
+function renderTraceTable(s) {
+  const tbody = document.getElementById('obTraceTbody');
+  const meta = document.getElementById('obTracesMeta');
+  if (!tbody) return;
+
+  if (s.ticker.recentTraces.length === 0) {
+    state.ticker.recentTraces = synthInitialTraces(10);
+  }
+  const traces = state.ticker.recentTraces;
+  const filtered = s.currentDomain ? traces.filter(t => t.domain === s.currentDomain) : traces;
+
+  if (meta) meta.textContent = filtered.length + ' ' + (filtered.length === 1 ? 'trace' : 'traces') + ' · live';
+
+  const rowsHtml = filtered.slice(0, 10).map(t => {
+    const isNew = (Date.now() - t.timestamp) < 1500;
+    const ts = new Date(t.timestamp);
+    const hh = String(ts.getHours()).padStart(2, '0');
+    const mm = String(ts.getMinutes()).padStart(2, '0');
+    const ss = String(ts.getSeconds()).padStart(2, '0');
+    return '<tr data-trace-id="' + t.id + '" class="' + (isNew ? 'trace-new' : '') + '">'
+      + '<td><code>' + hh + ':' + mm + ':' + ss + '</code></td>'
+      + '<td><strong>' + t.domainName + '</strong></td>'
+      + '<td>' + t.scenarioName + '</td>'
+      + '<td><code>' + (t.durationMs/1000).toFixed(2) + 's</code></td>'
+      + '<td><code>' + t.tokens.toLocaleString('pt-BR') + '</code></td>'
+      + '<td><span class="ob-status-pass">' + t.status + '</span></td>'
+      + '</tr>';
+  }).join('');
+
+  setHTML(tbody, rowsHtml || '<tr><td colspan="6" style="padding:20px;text-align:center;color:#6B7280">Sem traces neste filtro.</td></tr>');
+
+  tbody.querySelectorAll('tr[data-trace-id]').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const trace = state.ticker.recentTraces.find(t => t.id === tr.dataset.traceId);
+      if (trace) openDrill('trace', trace);
+    });
+  });
+}
+
+// Override do stub de trace drill com versão completa
+renderTraceDrill = function (t, eyebrow, title, body, foot) {
+  eyebrow.textContent = 'Execução · ' + t.domainName;
+  title.textContent = t.scenarioName;
+  const ts = new Date(t.timestamp);
+  const pipelineHtml = t.pipeline.map((p, i) =>
+    '<div class="drill-list-item">'
+    + '<div class="di-title">' + (i + 1) + '. ' + p.description + '</div>'
+    + '<div class="di-meta"><code>' + p.name + '</code> · ' + p.durationMs + 'ms · <span class="drill-tag success" style="margin-left:4px">' + p.status + '</span></div>'
+    + '</div>'
+  ).join('');
+  setHTML(body,
+    '<div class="drill-section">'
+    + '<dl class="drill-kv">'
+    + '<dt>ID</dt><dd><code>' + t.id + '</code></dd>'
+    + '<dt>Quando</dt><dd>' + ts.toLocaleString('pt-BR') + '</dd>'
+    + '<dt>Agente</dt><dd>' + t.agent + '</dd>'
+    + '<dt>Duração</dt><dd>' + (t.durationMs/1000).toFixed(2) + 's</dd>'
+    + '<dt>Tokens</dt><dd>' + t.tokens.toLocaleString('pt-BR') + '</dd>'
+    + '<dt>Status</dt><dd><span class="drill-tag success">' + t.status + '</span></dd>'
+    + '</dl></div>'
+    + '<div class="drill-section">'
+    + '<div class="drill-section-title">Pipeline anti-alucinação</div>'
+    + '<div class="drill-list">' + pipelineHtml + '</div>'
+    + '</div>'
+  );
+  setHTML(foot, '<button class="app-btn secondary" onclick="closeDrill()">Fechar</button>');
+};
 
 // Auto-scale para caber em qualquer viewport mantendo proporção 1920x1080
 function fitScale() {
