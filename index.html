@@ -3933,6 +3933,337 @@ Estratégias pedagógicas recomendadas com fundamentação na <strong>LBI Art. 2
 </div>
 
 <script>
+// ════════════════════════════════════════════════════════════════
+// KAIROS_DATA — dados curados dos domínios GovAI (Modo Aplicação)
+// Fonte: github.com/VilelaAI/kairos-dominios-pro (privado)
+// ════════════════════════════════════════════════════════════════
+const KAIROS_DATA = {
+  featured: {
+    contria: {
+      id: 'contria',
+      name: 'ContrIA',
+      fullName: 'Contratos Administrativos',
+      regulators: ['Lei 14.133/21', 'TCU', 'CGU'],
+      cluster: 'govai',
+      iconHint: 'contract',
+      agents: [
+        { id: 'adv-contratos-gov', role: 'Adv. Contratos', specialty: 'Lei 14.133/21 Art. 89-154 — cláusulas, garantias, prorrogação', description: 'Redige e revisa cláusulas contratuais, valida prazos e garantias.' },
+        { id: 'fiscal-contrato',  role: 'Fiscal de Contrato', specialty: 'Art. 117 — medições, recebimento provisório/definitivo', description: 'Verifica entregas, mede SLA, registra ocorrências.' },
+        { id: 'esp-aditivos',     role: 'Esp. Aditivos', specialty: 'Art. 124-136 — acréscimos 25%/50%, reequilíbrio, apostilamento', description: 'Diferencia aditivo de apostilamento; valida limites de alteração.' },
+        { id: 'esp-sancoes',      role: 'Esp. Sanções', specialty: 'Art. 155-163 — advertência, multa, impedimento, inidoneidade', description: 'Avalia proporcionalidade e devido processo nas sanções.' },
+        { id: 'esp-regularidade', role: 'Esp. Regularidade', specialty: 'CND, FGTS, CNDT — verificação durante toda a vigência', description: 'Mantém regularidade fiscal viva ao longo do contrato.' },
+      ],
+      assertions: [
+        { name: 'lei_14133_citada',        description: 'Lei 14.133/21 citada com artigo.', category: 'fundamentacao', pipeline: true, pipelineOrder: 1 },
+        { name: 'limite_25pct',            description: 'Acréscimo dentro do limite de 25% (art. 125).', category: 'aditivos', pipeline: true, pipelineOrder: 2 },
+        { name: 'sancao_proporcional',     description: 'Sanção proporcional à infração (art. 156).', category: 'sancoes', pipeline: true, pipelineOrder: 3 },
+        { name: 'processo_administrativo', description: 'Devido processo administrativo observado.', category: 'devido_processo', pipeline: true, pipelineOrder: 4 },
+        { name: 'limite_50pct_reforma',    description: 'Reforma respeita limite de 50% (art. 125, §1º).', category: 'aditivos' },
+        { name: 'apostilamento_vs_aditivo',description: 'Reajuste por índice via apostilamento, não aditivo.', category: 'aditivos' },
+        { name: 'fiscal_obrigatorio',      description: 'Fiscal de contrato designado (art. 117).', category: 'fiscalizacao' },
+        { name: 'recebimento_provisorio',  description: 'Recebimento provisório registrado em ata.', category: 'fiscalizacao' },
+        { name: 'prazo_definitivo_90d',    description: 'Recebimento definitivo em até 90 dias.', category: 'fiscalizacao' },
+        { name: 'regularidade_vigencia',   description: 'CND/FGTS/CNDT válidas durante toda a vigência.', category: 'regularidade' },
+        { name: 'publicacao_pncp',         description: 'Publicação no PNCP em até 20 dias úteis.', category: 'transparencia' },
+        { name: 'pagamento_30d',           description: 'Pagamento em até 30 dias da liquidação.', category: 'financeiro' },
+      ],
+      scenarios: [
+        {
+          id: 'gc001',
+          name: 'Acréscimo de 30% em obra',
+          agent: 'esp-aditivos',
+          input: 'Contrato de R$ 500k. Necessidade de acréscimo de R$ 150k (30%) por mudança de projeto. Pode aditivar?',
+          expected_keys: ['lei_14133_citada', 'limite_25pct'],
+          output_mock: 'O acréscimo de 30% **excede o limite legal de 25%** previsto no art. 125 da Lei 14.133/21. Caminhos: (a) reduzir o acréscimo a R$ 125k (25%); (b) caracterizar como reforma e usar o limite de 50% — exige justificativa técnica; (c) novo procedimento. Este texto não substitui parecer jurídico formal.',
+        },
+        {
+          id: 'gc003',
+          name: 'Atraso de 30 dias sem justificativa',
+          agent: 'esp-sancoes',
+          input: 'Contratada atrasou entrega em 30 dias sem justificar. Que sanção aplicar?',
+          expected_keys: ['sancao_proporcional', 'processo_administrativo'],
+          output_mock: 'Sanção proporcional (art. 156): multa contratual + advertência. Impedimento de licitar (art. 156, III) cabível se reincidência ou prejuízo grave. Devido processo administrativo é obrigatório — contraditório e ampla defesa. Não cabe sanção sem instauração formal. Este texto não substitui parecer jurídico formal.',
+        },
+        {
+          id: 'gc007',
+          name: 'Recebimento de obra concluída',
+          agent: 'fiscal-contrato',
+          input: 'Obra concluída. Como proceder com o recebimento provisório e definitivo?',
+          expected_keys: ['recebimento_provisorio', 'prazo_definitivo_90d'],
+          output_mock: 'Recebimento provisório lavrado em até 15 dias da comunicação (art. 140, I). Recebimento definitivo em até 90 dias, após verificação de qualidade e quantidade. Falhas devem ser registradas em termo circunstanciado. Este texto não substitui parecer jurídico formal.',
+        },
+      ],
+      metrics: {
+        '1d':  { execs: 627,   tokens: '2.1M',  cost: 'R$ 54',    approval: 99.4 },
+        '7d':  { execs: 4521,  tokens: '15.2M', cost: 'R$ 384',   approval: 99.1 },
+        '30d': { execs: 18412, tokens: '63.7M', cost: 'R$ 1.601', approval: 99.0 },
+      },
+      finops: {
+        models: [
+          { name: 'Claude Sonnet 4.6', cost: 247.10, pct: 64, tokens: '9.7M' },
+          { name: 'Claude Haiku 4.5',  cost: 82.40,  pct: 21, tokens: '4.1M' },
+          { name: 'GPT-4o',            cost: 54.50,  pct: 15, tokens: '1.4M' },
+        ],
+        budget: { used: 78, limit: 1500, current: 1170, currency: 'R$' },
+        topPrompts: [
+          { id: 'p001', label: 'Avaliação de motivação Lei 14.133 art. 11', model: 'Claude Sonnet 4.6', costSum: 38.20, runs: 412 },
+          { id: 'p002', label: 'Análise de aditivo contratual',              model: 'Claude Sonnet 4.6', costSum: 31.05, runs: 287 },
+          { id: 'p003', label: 'Proporcionalidade de sanção',                model: 'Claude Sonnet 4.6', costSum: 26.40, runs: 198 },
+          { id: 'p004', label: 'Recebimento provisório/definitivo',           model: 'Claude Haiku 4.5',  costSum: 14.80, runs: 521 },
+          { id: 'p005', label: 'Regularidade fiscal contínua',                model: 'Claude Haiku 4.5',  costSum: 11.20, runs: 388 },
+        ],
+      },
+      compliance: {
+        categories: ['lei14133'],
+        items: [
+          { label: 'Lei 14.133/21 citada com artigo em toda fundamentação', regulator: 'Lei 14.133/21', lastCheck: 'pass',    passRate7d: 0.994 },
+          { label: 'Limite de 25% em acréscimos contratuais respeitado',     regulator: 'Lei 14.133/21 art. 125', lastCheck: 'pass', passRate7d: 0.987 },
+          { label: 'Sanção administrativa precedida de devido processo',     regulator: 'Lei 14.133/21 art. 158', lastCheck: 'pass', passRate7d: 0.999 },
+          { label: 'Fiscal de contrato designado formalmente',               regulator: 'Lei 14.133/21 art. 117', lastCheck: 'pass', passRate7d: 1.0 },
+          { label: 'Recebimento definitivo em até 90 dias',                  regulator: 'Lei 14.133/21 art. 140', lastCheck: 'warning', passRate7d: 0.912 },
+          { label: 'Regularidade fiscal verificada durante a vigência',      regulator: 'Lei 14.133/21 art. 92', lastCheck: 'pass', passRate7d: 0.975 },
+          { label: 'Publicação no PNCP em 20 dias úteis',                    regulator: 'Lei 14.133/21 art. 94', lastCheck: 'pass', passRate7d: 0.991 },
+        ],
+      },
+    },
+
+    licitia: {
+      id: 'licitia',
+      name: 'LicitIA',
+      fullName: 'Licitações Públicas',
+      regulators: ['Lei 14.133/21', 'PNCP', 'TCU'],
+      cluster: 'govai',
+      iconHint: 'document',
+      agents: [
+        { id: 'esp-modalidades',  role: 'Esp. Modalidades', specialty: 'Lei 14.133 — pregão, concorrência, diálogo competitivo, dispensa', description: 'Indica a modalidade correta para cada objeto e valor.' },
+        { id: 'esp-edital',       role: 'Esp. Edital', specialty: 'Art. 25 — cláusulas obrigatórias, TR, ETP, matriz de risco', description: 'Valida estrutura e completude do edital antes da publicação.' },
+        { id: 'esp-precos',       role: 'Esp. Pesquisa de Preços', specialty: 'Decreto 11.462/23 — painel de preços, 3+ fontes', description: 'Garante pesquisa robusta e justificada, sustentando o orçamento.' },
+        { id: 'esp-habilitacao',  role: 'Esp. Habilitação', specialty: 'Art. 62-70 — jurídica, técnica, fiscal, econômico-financeira', description: 'Define exigências proporcionais ao objeto e analisa documentação.' },
+        { id: 'esp-meepp',        role: 'Esp. ME/EPP', specialty: 'LC 123 art. 43-49 — cota até R$ 80k, regularização 5 dias', description: 'Aplica tratamento diferenciado e protege a ampliação de acesso.' },
+        { id: 'esp-pncp',         role: 'Esp. PNCP', specialty: 'Portal Nacional de Contratações Públicas — publicação obrigatória', description: 'Acompanha publicação, prazos e divulgação transparente.' },
+      ],
+      assertions: [
+        { name: 'lei_14133_citada',     description: 'Lei 14.133/21 citada com artigo.',     category: 'fundamentacao', pipeline: true, pipelineOrder: 1 },
+        { name: 'modalidade_correta',   description: 'Modalidade adequada ao objeto e valor.', category: 'modalidade',   pipeline: true, pipelineOrder: 2 },
+        { name: 'pesquisa_3_fontes',    description: 'Pesquisa de preços com mínimo 3 fontes.', category: 'precos',        pipeline: true, pipelineOrder: 3 },
+        { name: 'pncp_publicacao',      description: 'Publicação no PNCP exigida.',           category: 'transparencia',  pipeline: true, pipelineOrder: 4 },
+        { name: 'pregao_preferencial',  description: 'Pregão preferencial para bens/serviços comuns.', category: 'modalidade' },
+        { name: 'etp_obrigatorio',      description: 'Estudo Técnico Preliminar exigido.',    category: 'preparatorio' },
+        { name: 'meepp_tratamento',     description: 'Tratamento diferenciado ME/EPP verificado.', category: 'meepp' },
+        { name: 'regularizacao_5_dias', description: 'ME/EPP têm 5 dias úteis para regularizar.', category: 'meepp' },
+        { name: 'sinapi_obras',         description: 'SINAPI/SICRO referenciado para obras.',  category: 'precos' },
+        { name: 'bdi_separado',         description: 'BDI apresentado em separado.',          category: 'precos' },
+        { name: 'matriz_risco',         description: 'Matriz de risco para obras/engenharia.', category: 'preparatorio' },
+        { name: 'fracionamento_vedado', description: 'Fracionamento para dispensa vedado.',   category: 'modalidade' },
+      ],
+      scenarios: [
+        {
+          id: 'li001',
+          name: 'Material de escritório por R$ 45k',
+          agent: 'esp-modalidades',
+          input: 'Aquisição de material de escritório no valor de R$ 45.000. Qual modalidade?',
+          expected_keys: ['lei_14133_citada', 'modalidade_correta'],
+          output_mock: 'Dispensa eletrônica é cabível (art. 75, II — bens e serviços comuns até R$ 100k em 2026). Justificativa econômica obrigatória, pesquisa de preços com 3+ fontes, publicação no PNCP. Vedado fracionamento para enquadrar em dispensa. Este texto não substitui parecer jurídico formal.',
+        },
+        {
+          id: 'li003',
+          name: 'Pesquisa de preços com 1 orçamento só',
+          agent: 'esp-precos',
+          input: 'Pesquisa de preços feita com apenas 1 orçamento de fornecedor. É suficiente?',
+          expected_keys: ['pesquisa_3_fontes', 'lei_14133_citada'],
+          output_mock: 'Insuficiente. O Decreto 11.462/23 exige no mínimo 3 fontes (painel de preços, contratações similares, fornecedores ou pesquisa publicada). Ampliar a pesquisa e justificar a metodologia. Vedado uso isolado de orçamento de fornecedor. Este texto não substitui parecer jurídico formal.',
+        },
+        {
+          id: 'li007',
+          name: 'Contrato sem publicação no PNCP',
+          agent: 'esp-pncp',
+          input: 'Contrato assinado há 10 dias sem publicação no PNCP. Há irregularidade?',
+          expected_keys: ['pncp_publicacao', 'lei_14133_citada'],
+          output_mock: 'Ainda no prazo — art. 94, I, da Lei 14.133/21 dá 20 dias úteis. Publicar imediatamente: até a publicação o contrato não produz efeitos jurídicos perante terceiros (art. 94, §1º). Este texto não substitui parecer jurídico formal.',
+        },
+      ],
+      metrics: {
+        '1d':  { execs: 522,   tokens: '1.8M',  cost: 'R$ 46',    approval: 98.6 },
+        '7d':  { execs: 3812,  tokens: '12.9M', cost: 'R$ 317',   approval: 98.4 },
+        '30d': { execs: 15487, tokens: '54.1M', cost: 'R$ 1.348', approval: 98.2 },
+      },
+      finops: {
+        models: [
+          { name: 'Claude Sonnet 4.6', cost: 198.40, pct: 62, tokens: '7.8M' },
+          { name: 'Claude Haiku 4.5',  cost: 72.10,  pct: 23, tokens: '3.6M' },
+          { name: 'GPT-4o',            cost: 46.20,  pct: 15, tokens: '1.2M' },
+        ],
+        budget: { used: 71, limit: 1500, current: 1065, currency: 'R$' },
+        topPrompts: [
+          { id: 'p101', label: 'Definição de modalidade pela Lei 14.133',  model: 'Claude Sonnet 4.6', costSum: 42.30, runs: 587 },
+          { id: 'p102', label: 'Pesquisa de preços e justificativa',        model: 'Claude Sonnet 4.6', costSum: 28.70, runs: 314 },
+          { id: 'p103', label: 'Revisão de cláusulas obrigatórias (art. 25)', model: 'Claude Sonnet 4.6', costSum: 25.10, runs: 198 },
+          { id: 'p104', label: 'Tratamento diferenciado ME/EPP',             model: 'Claude Haiku 4.5',  costSum: 17.40, runs: 411 },
+          { id: 'p105', label: 'Publicação no PNCP — prazos e conteúdo',      model: 'Claude Haiku 4.5',  costSum: 12.90, runs: 366 },
+        ],
+      },
+      compliance: {
+        categories: ['lei14133'],
+        items: [
+          { label: 'Modalidade adequada ao objeto e valor',                     regulator: 'Lei 14.133/21 art. 28-32',  lastCheck: 'pass',    passRate7d: 0.989 },
+          { label: 'Pesquisa de preços com 3+ fontes documentadas',             regulator: 'Decreto 11.462/23',         lastCheck: 'pass',    passRate7d: 0.972 },
+          { label: 'Estudo Técnico Preliminar elaborado e arquivado',           regulator: 'Lei 14.133/21 art. 18',     lastCheck: 'warning', passRate7d: 0.881 },
+          { label: 'Tratamento diferenciado ME/EPP aplicado quando cabível',    regulator: 'LC 123/06 art. 43-49',     lastCheck: 'pass',    passRate7d: 0.965 },
+          { label: 'Publicação no PNCP em até 20 dias úteis',                   regulator: 'Lei 14.133/21 art. 94, I',  lastCheck: 'pass',    passRate7d: 0.991 },
+          { label: 'Cláusulas obrigatórias do art. 25 presentes no edital',     regulator: 'Lei 14.133/21 art. 25',     lastCheck: 'pass',    passRate7d: 0.984 },
+        ],
+      },
+    },
+
+    privacia: {
+      id: 'privacia',
+      name: 'PrivacIA',
+      fullName: 'Proteção de Dados (LGPD)',
+      regulators: ['LGPD', 'ANPD', 'Decreto 8.771/16'],
+      cluster: 'govai',
+      iconHint: 'shield',
+      agents: [
+        { id: 'dpo-virtual',         role: 'DPO Virtual', specialty: 'LGPD completa (Lei 13.709/18) — nomeação do encarregado, canal do titular', description: 'Atua como DPO as a Service, mantendo conformidade contínua.' },
+        { id: 'analista-mapeamento', role: 'Analista Mapeamento', specialty: 'Inventário, fluxo de dados, registro de tratamento (art. 37)', description: 'Mapeia onde os dados pessoais entram, vivem e saem da organização.' },
+        { id: 'esp-bases-legais',    role: 'Esp. Bases Legais', specialty: 'Art. 7 (10 bases), Art. 11 (sensíveis), consentimento, legítimo interesse', description: 'Indica a base legal correta para cada tratamento — sem inventar.' },
+        { id: 'esp-ripd',            role: 'Esp. RIPD', specialty: 'Relatório de Impacto à Proteção de Dados (art. 38) — quando e como elaborar', description: 'Constrói RIPD para tratamentos de risco alto.' },
+        { id: 'esp-incidentes',      role: 'Esp. Incidentes', specialty: 'Art. 48 — comunicação à ANPD em 2 dias úteis', description: 'Conduz resposta a incidente, registro e comunicação.' },
+        { id: 'esp-direitos',        role: 'Esp. Direitos do Titular', specialty: 'Art. 18 — confirmação, acesso, portabilidade, eliminação; prazo 15 dias', description: 'Garante atendimento aos direitos dentro do prazo.' },
+      ],
+      assertions: [
+        { name: 'lgpd_citada',           description: 'LGPD citada com artigo.',                          category: 'fundamentacao', pipeline: true, pipelineOrder: 1 },
+        { name: 'base_legal_sempre',     description: 'Tratamento sempre com base legal (art. 7).',       category: 'base_legal',    pipeline: true, pipelineOrder: 2 },
+        { name: 'finalidade_especifica', description: 'Finalidade específica e explícita declarada.',    category: 'principios',    pipeline: true, pipelineOrder: 3 },
+        { name: 'titular_15_dias',       description: 'Resposta ao titular em até 15 dias.',              category: 'direitos',      pipeline: true, pipelineOrder: 4 },
+        { name: 'sensivel_sem_legitimo', description: 'Dados sensíveis sem legítimo interesse (art. 11).', category: 'base_legal' },
+        { name: 'consentimento_livre',   description: 'Consentimento livre, informado e inequívoco.',     category: 'base_legal' },
+        { name: 'incidente_2_dias',      description: 'Incidente comunicado à ANPD em 2 dias úteis.',     category: 'incidentes' },
+        { name: 'ripd_quando_risco',     description: 'RIPD obrigatório para tratamento de risco alto.',  category: 'ripd' },
+        { name: 'registro_art37',        description: 'Registro de tratamento (art. 37) obrigatório.',    category: 'governanca' },
+        { name: 'dpo_obrigatorio',       description: 'DPO nomeado e contato publicado (art. 41).',       category: 'governanca' },
+        { name: 'minimizacao',           description: 'Princípio da minimização aplicado.',               category: 'principios' },
+        { name: 'transferencia_internacional', description: 'Art. 33 verificado para transferência internacional.', category: 'transferencia' },
+      ],
+      scenarios: [
+        {
+          id: 'lg002',
+          name: 'Biometria para controle de ponto',
+          agent: 'esp-bases-legais',
+          input: 'Empresa quer usar digital biométrica para ponto, justificando "legítimo interesse". É possível?',
+          expected_keys: ['lgpd_citada', 'base_legal_sempre', 'sensivel_sem_legitimo'],
+          output_mock: 'Não. Biometria é dado pessoal sensível (art. 5, II). A LGPD (art. 11) **não admite legítimo interesse** como base para sensíveis. Bases válidas: consentimento específico e destacado, ou obrigação legal/regulatória (não aplicável aqui). Alternativa: ponto não-biométrico. Este texto não substitui parecer jurídico formal.',
+        },
+        {
+          id: 'lg004',
+          name: 'Vazamento de 10.000 CPFs há 3 dias',
+          agent: 'esp-incidentes',
+          input: 'Vazamento de 10.000 CPFs descoberto há 3 dias. ANPD não foi comunicada ainda.',
+          expected_keys: ['lgpd_citada', 'incidente_2_dias'],
+          output_mock: 'Prazo de 2 dias úteis (art. 48) já excedido. Comunicar à ANPD imediatamente e comunicar os titulares afetados. Registrar o incidente, medidas corretivas e mitigações. Avaliar necessidade de RIPD retroativo. Este texto não substitui parecer jurídico formal.',
+        },
+        {
+          id: 'lg007',
+          name: 'Empresa de porte médio sem DPO',
+          agent: 'dpo-virtual',
+          input: 'Empresa de 200 funcionários, sem DPO nomeado. É obrigatório?',
+          expected_keys: ['lgpd_citada', 'dpo_obrigatorio'],
+          output_mock: 'Sim — art. 41 exige encarregado de proteção de dados. Pode ser pessoa física ou jurídica (DPO as a Service). Identidade e canal de contato devem ser publicados no site/portais da empresa. Não nomear pode resultar em sanção da ANPD (advertência → multa). Este texto não substitui parecer jurídico formal.',
+        },
+      ],
+      metrics: {
+        '1d':  { execs: 416,   tokens: '1.5M',  cost: 'R$ 39',    approval: 98.8 },
+        '7d':  { execs: 2987,  tokens: '10.8M', cost: 'R$ 274',   approval: 98.5 },
+        '30d': { execs: 11984, tokens: '43.2M', cost: 'R$ 1.142', approval: 98.3 },
+      },
+      finops: {
+        models: [
+          { name: 'Claude Sonnet 4.6', cost: 174.20, pct: 64, tokens: '6.9M' },
+          { name: 'Claude Haiku 4.5',  cost: 58.30,  pct: 21, tokens: '2.9M' },
+          { name: 'GPT-4o',            cost: 41.50,  pct: 15, tokens: '1.0M' },
+        ],
+        budget: { used: 68, limit: 1500, current: 1018, currency: 'R$' },
+        topPrompts: [
+          { id: 'p201', label: 'Determinação de base legal (art. 7)',         model: 'Claude Sonnet 4.6', costSum: 39.80, runs: 612 },
+          { id: 'p202', label: 'Resposta a pedido de titular (art. 18)',      model: 'Claude Sonnet 4.6', costSum: 24.10, runs: 287 },
+          { id: 'p203', label: 'Análise de incidente e comunicação à ANPD',   model: 'Claude Sonnet 4.6', costSum: 22.40, runs: 142 },
+          { id: 'p204', label: 'RIPD para tratamento de risco alto',          model: 'Claude Haiku 4.5',  costSum: 14.60, runs: 198 },
+          { id: 'p205', label: 'Inventário de dados pessoais',                 model: 'Claude Haiku 4.5',  costSum: 11.90, runs: 244 },
+        ],
+      },
+      compliance: {
+        categories: ['lgpd'],
+        items: [
+          { label: 'Base legal declarada e adequada para todo tratamento',    regulator: 'LGPD art. 7',     lastCheck: 'pass',    passRate7d: 0.991 },
+          { label: 'Dados sensíveis sem legítimo interesse (vedado)',         regulator: 'LGPD art. 11',    lastCheck: 'pass',    passRate7d: 0.998 },
+          { label: 'Finalidade específica e explícita declarada',             regulator: 'LGPD art. 6, I',  lastCheck: 'pass',    passRate7d: 0.985 },
+          { label: 'Direitos do titular atendidos em até 15 dias',            regulator: 'LGPD art. 18',    lastCheck: 'warning', passRate7d: 0.892 },
+          { label: 'Incidentes comunicados à ANPD em 2 dias úteis',           regulator: 'LGPD art. 48',    lastCheck: 'pass',    passRate7d: 0.967 },
+          { label: 'DPO/Encarregado nomeado e contato publicado',             regulator: 'LGPD art. 41',    lastCheck: 'pass',    passRate7d: 1.0 },
+          { label: 'Registro de tratamento de dados (art. 37) mantido',       regulator: 'LGPD art. 37',    lastCheck: 'pass',    passRate7d: 0.962 },
+        ],
+      },
+    },
+  },
+
+  placeholders: [
+    { id: 'transparencia', name: 'TransparenciaIA', fullName: 'Transparência Pública',  regulators: ['LAI', 'LRF', 'TCE'],          eta: '60d',     cluster: 'govai',    iconHint: 'eye' },
+    { id: 'ouvidoria',     name: 'OuvidorIA',       fullName: 'Ouvidoria',              regulators: ['Lei 13.460/17'],              eta: '90d',     cluster: 'govai',    iconHint: 'message' },
+    { id: 'servidor',      name: 'ServidorIA',      fullName: 'Servidores Públicos',    regulators: ['eSocial gov', 'RPPS'],        eta: '90d',     cluster: 'govai',    iconHint: 'users' },
+    { id: 'saude',         name: 'Saúde',           fullName: 'Gestão de Saúde',        regulators: ['CFM', 'ANS', 'ANVISA'],       eta: '120d',    cluster: 'setorial', iconHint: 'heart' },
+    { id: 'educacao',      name: 'Educação Inclusiva', fullName: 'Educação Inclusiva', regulators: ['LBI', 'BNCC', 'CNE'],         eta: '120d',    cluster: 'setorial', iconHint: 'school' },
+    { id: 'tributario',    name: 'Tributário',      fullName: 'Tributário',             regulators: ['CTN', 'RFB', 'CARF'],         eta: 'roadmap', cluster: 'setorial', iconHint: 'dollar' },
+  ],
+
+  global: {
+    metrics: {
+      '1d':  { execs: 1835,  tokens: '6.3M',   cost: 'R$ 127',   approval: 99.1 },
+      '7d':  { execs: 12847, tokens: '43.9M',  cost: 'R$ 891',   approval: 98.7 },
+      '30d': { execs: 51284, tokens: '175.4M', cost: 'R$ 3.621', approval: 98.4 },
+    },
+    finops: {
+      models: [
+        { name: 'Claude Sonnet 4.6', cost: 107.52, pct: 62, tokens: '28.4M' },
+        { name: 'Claude Haiku 4.5',  cost: 36.42,  pct: 21, tokens: '10.8M' },
+        { name: 'GPT-4o',            cost: 19.07,  pct: 11, tokens: '3.2M' },
+        { name: 'Gemini 2.5 Pro',    cost: 10.41,  pct: 6,  tokens: '1.5M' },
+      ],
+      budget: { used: 64, limit: 1500, current: 960, currency: 'R$' },
+    },
+  },
+};
+
+// ════════════════════════════════════════════════════════════════
+// STATE STORE — reativo, vanilla, sem deps
+// ════════════════════════════════════════════════════════════════
+const state = {
+  currentDomain: null,        // 'contria' | 'licitia' | 'privacia' | null
+  currentScreen: 'overview',  // 'overview'|'catalog'|'agents'|'assertions'|'playground'|'observability'|'finops'|'compliance'
+  period: '7d',               // '1d' | '7d' | '30d'
+  drillDown: null,            // { type, payload } | null
+  ticker: { recentTraces: [], lastTick: Date.now(), paused: false },
+  filters: {
+    catalog:    { regulator: 'all', query: '' },
+    agents:     { role: 'all' },
+    assertions: { status: 'all' },
+    compliance: { category: 'lei14133' },
+  },
+};
+
+const __subscribers = new Set();
+function setState(patch) {
+  Object.assign(state, patch);
+  __subscribers.forEach(fn => { try { fn(state); } catch (e) { console.error('[setState]', e); } });
+}
+function subscribe(fn) { __subscribers.add(fn); return () => __subscribers.delete(fn); }
+
+function activeDomainData() {
+  return state.currentDomain ? KAIROS_DATA.featured[state.currentDomain] : null;
+}
+function activeMetrics() {
+  const d = activeDomainData();
+  return d ? d.metrics[state.period] : KAIROS_DATA.global.metrics[state.period];
+}
+
 const slides = document.querySelectorAll('.slide');
 const total = slides.length;
 let curr = 0;
@@ -3984,6 +4315,7 @@ function toggleApp() {
 
 // Navegação entre telas
 function appNavigate(screen) {
+  setState({ currentScreen: screen });
   document.querySelectorAll('#kairosApp .app-screen').forEach(s => {
     s.classList.toggle('active', s.dataset.screen === screen);
   });
