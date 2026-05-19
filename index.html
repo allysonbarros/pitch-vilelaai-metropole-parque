@@ -4765,6 +4765,9 @@ document.addEventListener('keydown', (e) => {
       showAppToast(state.ticker.paused ? 'Ticker pausado' : 'Ticker retomado');
       return;
     }
+    // Keys que continuam ativas mesmo dentro do app-mode
+    if (e.key === 'R' || e.key === 'r') { toggleRecording(); return; }
+    if (e.key === 'F' || e.key === 'f') { toggleFullscreen(); return; }
     return;
   }
   if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') nextSlide();
@@ -5110,14 +5113,8 @@ document.querySelectorAll('#kairosApp .side-item[data-screen]').forEach(item => 
   item.addEventListener('click', () => appNavigate(item.dataset.screen));
 });
 
-// ─── Cards de domínio: clique leva ao Playground ───────────
-document.querySelectorAll('#kairosApp .domain-card').forEach(card => {
-  card.addEventListener('click', () => {
-    // Por enquanto qualquer card vai pro mesmo cenário (M.S.A.)
-    appNavigate('playground');
-    pgLoad();
-  });
-});
+// Cards de domínio agora têm seus listeners aplicados dentro de renderCatalog()
+// (com data-domain-id + featured/placeholder dispatch). Legacy listener removido.
 
 // ════════════════════════════════════════════════════════════════
 // PLAYGROUND — fluxo interativo
